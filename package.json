@@ -1,0 +1,22 @@
+{
+  "name": "UQL",
+  "version": "0.0.1",
+  "description": "Unified Query Language",
+  "scripts": {
+    "test": "tape test/**/*.js",
+    "test-dev": "tape test/**/*.js | tap-spec || echo ''",
+    "tdd": "nodemon -q -x 'npm run test-dev'"
+  },
+  "engines": {
+    "node": ">=6.2.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^4.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.9.2",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.6.0"
+  }
+}

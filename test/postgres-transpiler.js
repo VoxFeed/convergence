@@ -10,6 +10,7 @@ const schema = defineSchema('single_table', {
   lastName: types.STRING,
   age: types.INTEGER,
   tracked: types.BOOLEAN,
+  job: types.JSON,
   createdAt: types.DATE
 });
 const transpile = PostgresTranspiler(schema);
@@ -86,6 +87,14 @@ test('should create correct conditions with explicit $and operator', (t) => {
 test('should create correct conditions with a single $lt operator', (t) => {
   const uql = {tracked: true, createdAt: {$lt: new Date(startDate)}};
   const expected = `WHERE tracked=true AND created_at < '${startDate}'`;
+  const actual = transpile(uql);
+  t.equal(actual, expected);
+  t.end();
+});
+
+test('should create correct conditions for single json inner query', (t) => {
+  const uql = {'job.title': 'Programmer'};
+  const expected = 'WHERE job->>\'title\'=\'Programmer\'';
   const actual = transpile(uql);
   t.equal(actual, expected);
   t.end();

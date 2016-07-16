@@ -1,9 +1,18 @@
 const test = require('tape');
 
-const transpile = require('./../lib/transpilers/postgres');
-
 const startDate = '2001-02-11T00:00:00.000Z';
 const endDate = '2001-02-13T00:00:00.000Z';
+
+const PostgresTranspiler = require('./../lib/transpilers/postgres');
+const {types, defineSchema} = require('./../lib/schema/definition');
+const schema = defineSchema('single_table', {
+  name: types.STRING,
+  lastName: types.STRING,
+  age: types.INTEGER,
+  tracked: types.BOOLEAN,
+  createdAt: types.DATE
+});
+const transpile = PostgresTranspiler(schema);
 
 test('should create correct conditions with one condition', (t) => {
   const uql = {name: 'Jon'};
@@ -15,7 +24,7 @@ test('should create correct conditions with one condition', (t) => {
 
 test('should create correct conditions with two conditions', (t) => {
   const uql = {name: 'Jon', lastName: 'Doe'};
-  const expected = 'WHERE name=\'Jon\' AND lastName=\'Doe\'';
+  const expected = 'WHERE name=\'Jon\' AND last_name=\'Doe\'';
   const actual = transpile(uql);
   t.equal(actual, expected);
   t.end();
@@ -23,7 +32,7 @@ test('should create correct conditions with two conditions', (t) => {
 
 test('should create correct conditions with three conditions', (t) => {
   const uql = {name: 'Jon', lastName: 'Doe', age: 23};
-  const expected = 'WHERE name=\'Jon\' AND lastName=\'Doe\' AND age=23';
+  const expected = 'WHERE name=\'Jon\' AND last_name=\'Doe\' AND age=23';
   const actual = transpile(uql);
   t.equal(actual, expected);
   t.end();
@@ -37,7 +46,7 @@ test('should create correct conditions with a date range condition', (t) => {
     }
   };
   const actual = transpile(uql);
-  const expected = `WHERE createdAt >= \'${startDate}\' AND createdAt < '${endDate}'`;
+  const expected = `WHERE created_at >= \'${startDate}\' AND created_at < '${endDate}'`;
   t.equal(actual, expected);
   t.end();
 });
@@ -52,14 +61,15 @@ test('should create correct conditions with three regular conditions and a date 
   };
   const uql = Object.assign({}, regularConds, dateRange);
   const actual = transpile(uql);
-  const expected = `WHERE name=\'Jon\' AND lastName=\'Doe\' AND age=23 AND createdAt >= \'${startDate}\' AND createdAt < '${endDate}'`;
+  const expected = 'WHERE name=\'Jon\' AND last_name=\'Doe\' AND age=23 AND ' +
+   `created_at >= \'${startDate}\' AND created_at < '${endDate}'`;
   t.equal(actual, expected);
   t.end();
 });
 
 test('should create correct conditions with $or operator', (t) => {
   const uql = {$or: [{name: 'Jon'}, {lastName: 'Doe'}]};
-  const expected = 'WHERE name=\'Jon\' OR lastName=\'Doe\'';
+  const expected = 'WHERE name=\'Jon\' OR last_name=\'Doe\'';
   const actual = transpile(uql);
   t.equal(actual, expected);
   t.end();
@@ -67,16 +77,16 @@ test('should create correct conditions with $or operator', (t) => {
 
 test('should create correct conditions with explicit $and operator', (t) => {
   const uql = {$and: [{name: 'Jon'}, {lastName: 'Doe'}]};
-  const expected = 'WHERE name=\'Jon\' AND lastName=\'Doe\'';
+  const expected = 'WHERE name=\'Jon\' AND last_name=\'Doe\'';
   const actual = transpile(uql);
   t.equal(actual, expected);
   t.end();
 });
 
 test('should create correct conditions with a single $lt operator', (t) => {
-  const uql = {tracked: true, publishedAt: {$lt: new Date(startDate)}};
-  const expected = `WHERE tracked=true AND publishedAt < '${startDate}'`;
+  const uql = {tracked: true, createdAt: {$lt: new Date(startDate)}};
+  const expected = `WHERE tracked=true AND created_at < '${startDate}'`;
   const actual = transpile(uql);
   t.equal(actual, expected);
   t.end();
-})
+});

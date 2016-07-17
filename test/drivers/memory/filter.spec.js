@@ -46,7 +46,7 @@ test('should find with date ranges in one field $gte and $lt', (t) => {
   const startDate = new Date('2015-09-01T00:00:00.000Z');
   const endDate = new Date('2016-01-01T00:00:00.000Z');
   const uql = {createdAt: {$gte: new Date(startDate), $lt: new Date(endDate)}};
-  const expected = [3, 4, 5];
+  const expected = [3, 4, 5, 6];
   const actual = filter(uql).map(p => p.id).sort();
   t.equal(actual.join(), expected.join());
   t.end();
@@ -56,7 +56,7 @@ test('should find with date ranges in one field $gt and $lte', (t) => {
   const startDate = new Date('2015-10-01T00:00:00.000Z');
   const endDate = new Date('2015-12-01T00:00:00.000Z');
   const uql = {createdAt: {$gt: new Date(startDate), $lte: new Date(endDate)}};
-  const expected = [3, 5];
+  const expected = [3, 5, 6];
   const actual = filter(uql).map(p => p.id).sort();
   t.equal(actual.join(), expected.join());
   t.end();
@@ -121,16 +121,16 @@ test('should find records with implicit and operator and a $lt operator in a sin
 
 test('should find value in a nested attribute', (t) => {
   const uql = {'job.title': 'Programmer'};
-  const expected = [22, 24, 27];
-  const actual = filter(uql).map(p => p.age).sort();
+  const expected = [2, 4, 5, 6];
+  const actual = filter(uql).map(p => p.id).sort();
   t.equal(actual.join(), expected.join());
   t.end();
 });
 
 test('should find value in a nested attribute', (t) => {
   const uql = {'job.companyName': 'VoxFeed'};
-  const expected = [22, 23, 24, 27, 27];
-  const actual = filter(uql).map(p => p.age).sort();
+  const expected = [1, 2, 3, 4, 5];
+  const actual = filter(uql).map(p => p.id).sort();
   t.equal(actual.join(), expected.join());
   t.end();
 });

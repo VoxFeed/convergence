@@ -45,6 +45,15 @@ const persons = [
     tracked: false,
     job: {title: 'Programmer', companyName: 'VoxFeed'},
     createdAt: new Date('2015-10-19T00:00:00.000Z')
+  },
+  {
+    id: 6,
+    name: 'Abiee Alejandro',
+    lastName: 'Echamea',
+    age: 28,
+    tracked: false,
+    job: {title: 'Programmer', companyName: 'Wizeline'},
+    createdAt: new Date('2015-11-20T00:00:00.000Z')
   }
 ];
 

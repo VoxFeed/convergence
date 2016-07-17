@@ -110,3 +110,11 @@ test('should find no records with $and operator and impossible conditions', (t) 
   t.equal(actual.join(), expected.join());
   t.end();
 });
+
+test('should find records with implicit and operator and a $lt operator in a single field', (t) => {
+  const uql = {tracked: true, createdAt: {$lt: new Date('2016-02-18T00:00:00.000Z')}};
+  const expected = [2, 3, 4];
+  const actual = filter(uql).map(p => p.id).sort();
+  t.equal(actual.join(), expected.join());
+  t.end();
+});

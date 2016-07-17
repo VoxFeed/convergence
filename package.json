@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "description": "Unified Query Language",
   "scripts": {
-    "test": "tape test/**/*.js",
-    "test-dev": "tape test/**/*.js | tap-spec || echo ''",
+    "test": "tape test/**/*.spec.js",
+    "test-dev": "tape test/**/*.spec.js | tap-spec || echo ''",
     "tdd": "nodemon -q -x 'npm run test-dev'"
   },
   "engines": {

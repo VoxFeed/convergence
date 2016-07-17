@@ -3,8 +3,8 @@ const test = require('tape');
 const startDate = '2001-02-11T00:00:00.000Z';
 const endDate = '2001-02-13T00:00:00.000Z';
 
-const PostgresTranspiler = require('./../lib/transpilers/postgres');
-const {types, defineSchema} = require('./../lib/schema/definition');
+const PostgresTranspiler = require('./../../../lib/drivers/postgres/transpiler');
+const {types, defineSchema} = require('./../../../lib/schema/definition');
 const schema = defineSchema('single_table', {
   name: types.STRING,
   lastName: types.STRING,

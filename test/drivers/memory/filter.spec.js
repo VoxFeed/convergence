@@ -118,3 +118,19 @@ test('should find records with implicit and operator and a $lt operator in a sin
   t.equal(actual.join(), expected.join());
   t.end();
 });
+
+test('should find value in a nested attribute', (t) => {
+  const uql = {'job.title': 'Programmer'};
+  const expected = [22, 24, 27];
+  const actual = filter(uql).map(p => p.age).sort();
+  t.equal(actual.join(), expected.join());
+  t.end();
+});
+
+test('should find value in a nested attribute', (t) => {
+  const uql = {'job.companyName': 'VoxFeed'};
+  const expected = [22, 23, 24, 27, 27];
+  const actual = filter(uql).map(p => p.age).sort();
+  t.equal(actual.join(), expected.join());
+  t.end();
+});

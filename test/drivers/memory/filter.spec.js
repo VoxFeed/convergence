@@ -5,8 +5,9 @@ const first = require('lodash/first');
 
 const MemoryFilter = require('./../../../lib/drivers/memory/filter');
 const {types, defineSchema} = require('./../../../lib/schema/definition');
-
-const schema = defineSchema('single_table', {
+const fixtures = require('./../../data/fixtures/persons');
+const store = {'single_table': fixtures.map(clone)};
+const schema = defineSchema('single_table', {engine: 'memory', store}, {
   name: types.STRING,
   lastName: types.STRING,
   age: types.INTEGER,
@@ -14,8 +15,6 @@ const schema = defineSchema('single_table', {
   job: types.JSON,
   createdAt: types.DATE
 });
-const fixtures = require('./../../data/fixtures/persons');
-const store = {'single_table': fixtures.map(clone)};
 const filter = MemoryFilter(schema, store);
 
 suite('Memory Filter', (test) => {

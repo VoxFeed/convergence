@@ -54,7 +54,7 @@ const EmployeeStore = require('./stores/employees');
 const SomeOtherStore = require('./stores/some-other');
 
 const PostgresDatabase = () => {
-  const driver = 'postgres';
+  const driver = {engine: 'postgres', config: {}};
   const employeeStore = EmployeeStore(driver);
   const someOtherStore = SomeOtherStore(driver);
 
@@ -62,7 +62,7 @@ const PostgresDatabase = () => {
 };
 
 const MemoryDatabase = () => {
-  const driver = 'memory';
+  const driver = {engine: 'memory', store: {}};
   const employeeStore = EmployeeStore(driver);
   const someOtherStore = SomeOtherStore(driver);
 

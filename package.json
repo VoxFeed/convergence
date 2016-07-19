@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "description": "Unified Query Language",
   "scripts": {
-    "test": "tape test/**/*.spec.js",
-    "test-dev": "tape test/**/*.spec.js | tap-spec || echo ''",
+    "test": "tape test/run/index.js test/run/**/*.spec.js",
+    "test-dev": "tape test/run/index.js test/run/**/*.spec.js | tap-spec || echo ''",
     "tdd": "nodemon -q -x 'npm run test-dev'"
   },
   "engines": {
@@ -15,6 +15,7 @@
     "lodash": "^4.13.1"
   },
   "devDependencies": {
+    "app-module-path": "^1.1.0",
     "eslint": "^3.1.0",
     "nodemon": "^1.9.2",
     "proxyquire": "^1.7.10",

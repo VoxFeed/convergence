@@ -3,18 +3,11 @@ const clone = require('lodash/cloneDeep');
 const get = require('lodash/get');
 const first = require('lodash/first');
 
-const MemoryFilter = require('./../../../lib/drivers/memory/filter');
-const {types, defineSchema} = require('./../../../lib/schema/definition');
-const fixtures = require('./../../data/fixtures/persons');
+const MemoryFilter = require('lib/drivers/memory/filter');
+const fixtures = require('test/data/fixtures/persons');
 const store = {'single_table': fixtures.map(clone)};
-const schema = defineSchema('single_table', {engine: 'memory', store}, {
-  name: types.STRING,
-  lastName: types.STRING,
-  age: types.INTEGER,
-  tracked: types.BOOLEAN,
-  job: types.JSON,
-  createdAt: types.DATE
-});
+const driver = {'engine': 'memory', store};
+const schema = require('test/test-helpers/build-single-table-schema')(driver);
 const filter = MemoryFilter(schema, store);
 
 suite('Memory Filter', (test) => {

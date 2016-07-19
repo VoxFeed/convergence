@@ -1,18 +1,10 @@
 const proxyquire = require('proxyquire');
 const {suite} = require('suitape');
-const MockExecuteSql = require('./../../test-helpers/mocks/execute-sql');
+const MockExecuteSql = require('test/test-helpers/mocks/execute-sql');
 
-const Crud = proxyquire('./../../../lib/drivers/postgres/crud', {'./execute-sql': MockExecuteSql.build()});
+const Crud = proxyquire('lib/drivers/postgres/crud', {'./execute-sql': MockExecuteSql.build()});
 const driver = {engine: 'postgres', connection: {pool: {}}};
-const {types, defineSchema} = require('./../../../lib/schema/definition');
-const schema = defineSchema('single_table', driver, {
-  name: types.STRING,
-  lastName: types.STRING,
-  age: types.INTEGER,
-  tracked: types.BOOLEAN,
-  job: types.JSON,
-  createdAt: types.DATE
-});
+const schema = require('test/test-helpers/build-single-table-schema')(driver);
 
 suite('Postgres Crud', (test) => {
   test('findOne: should return promise', (assert) => {

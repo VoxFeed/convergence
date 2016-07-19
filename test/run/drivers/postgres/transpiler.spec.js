@@ -3,17 +3,9 @@ const {suite} = require('suitape');
 const startDate = '2001-02-11T00:00:00.000Z';
 const endDate = '2001-02-13T00:00:00.000Z';
 
-const PostgresTranspiler = require('./../../../lib/drivers/postgres/transpiler');
-const {types, defineSchema} = require('./../../../lib/schema/definition');
+const PostgresTranspiler = require('lib/drivers/postgres/transpiler');
 const driver = {engine: 'postgres', connection: {pool: {}}};
-const schema = defineSchema('single_table', driver, {
-  name: types.STRING,
-  lastName: types.STRING,
-  age: types.INTEGER,
-  tracked: types.BOOLEAN,
-  job: types.JSON,
-  createdAt: types.DATE
-});
+const schema = require('test/test-helpers/build-single-table-schema')(driver);
 
 const {select, insert} = PostgresTranspiler(schema);
 

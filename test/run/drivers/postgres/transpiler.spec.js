@@ -41,7 +41,7 @@ suite('Postgres Transpiler: Select', test => {
   test('should create correct SQL with a date range condition', (assert) => {
     const uql = {
       where: {
-        createdAt: {$gte: new Date(startDate), $lt: new Date(endDate)}
+        createdAt: {gte: new Date(startDate), lt: new Date(endDate)}
       }
     };
     const actual = select(uql);
@@ -53,8 +53,8 @@ suite('Postgres Transpiler: Select', test => {
     const regularConds = {name: 'Jon', lastName: 'Doe', age: 23};
     const dateRange = {
       createdAt: {
-        $gte: new Date(startDate),
-        $lt: new Date(endDate)
+        gte: new Date(startDate),
+        lt: new Date(endDate)
       }
     };
     const uql = {where: Object.assign({}, regularConds, dateRange)};
@@ -64,22 +64,22 @@ suite('Postgres Transpiler: Select', test => {
     assert('equal', actual, expected);
   });
 
-  test('should create correct SQL with $or operator', (assert) => {
-    const uql = {where: {$or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+  test('should create correct SQL with or operator', (assert) => {
+    const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' OR last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct SQL with explicit $and operator', (assert) => {
-    const uql = {where: {$and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+  test('should create correct SQL with explicit and operator', (assert) => {
+    const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct SQL with a single $lt operator', (assert) => {
-    const uql = {where: {tracked: true, createdAt: {$lt: new Date(startDate)}}};
+  test('should create correct SQL with a single lt operator', (assert) => {
+    const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
     const expected = `SELECT * FROM single_table WHERE tracked=true AND created_at < '${startDate}'`;
     const actual = select(uql);
     assert('equal', actual, expected);

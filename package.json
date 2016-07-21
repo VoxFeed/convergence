@@ -12,7 +12,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "lodash": "^4.13.1"
+    "camelobj": "0.0.3",
+    "lodash": "^4.13.1",
+    "snakeobj": "0.0.3"
   },
   "devDependencies": {
     "app-module-path": "^1.1.0",

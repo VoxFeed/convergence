@@ -17,28 +17,28 @@ suite('Postgres Transpiler: Select', test => {
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with one condition', assert => {
+  test('should create correct SQL with one condition', assert => {
     const uql = {where: {name: 'Jon'}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with two conditions', assert => {
+  test('should create correct SQL with two conditions', assert => {
     const uql = {where: {name: 'Jon', lastName: 'Doe'}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with three conditions', (assert) => {
+  test('should create correct SQL with three conditions', (assert) => {
     const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\' AND age=23';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with a date range condition', (assert) => {
+  test('should create correct SQL with a date range condition', (assert) => {
     const uql = {
       where: {
         createdAt: {$gte: new Date(startDate), $lt: new Date(endDate)}
@@ -49,7 +49,7 @@ suite('Postgres Transpiler: Select', test => {
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with three regular conditions and a date range condition', (assert) => {
+  test('should create correct SQL with three regular conditions and a date range condition', (assert) => {
     const regularConds = {name: 'Jon', lastName: 'Doe', age: 23};
     const dateRange = {
       createdAt: {
@@ -64,30 +64,52 @@ suite('Postgres Transpiler: Select', test => {
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with $or operator', (assert) => {
+  test('should create correct SQL with $or operator', (assert) => {
     const uql = {where: {$or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' OR last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with explicit $and operator', (assert) => {
+  test('should create correct SQL with explicit $and operator', (assert) => {
     const uql = {where: {$and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with a single $lt operator', (assert) => {
+  test('should create correct SQL with a single $lt operator', (assert) => {
     const uql = {where: {tracked: true, createdAt: {$lt: new Date(startDate)}}};
     const expected = `SELECT * FROM single_table WHERE tracked=true AND created_at < '${startDate}'`;
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions for single json inner query', (assert) => {
+  test('should create correct SQL for single json inner query', (assert) => {
     const uql = {where: {'job.title': 'Programmer'}};
     const expected = 'SELECT * FROM single_table WHERE job->>\'title\'=\'Programmer\'';
+    const actual = select(uql);
+    assert('equal', actual, expected);
+  });
+
+  test('should create correct SQL with order and single field to order', assert => {
+    const uql = {order: [{age: 'ASC'}]};
+    const expected = 'SELECT * FROM single_table ORDER BY age ASC';
+    const actual = select(uql);
+    assert('equal', actual, expected);
+  });
+
+  test('should create correct SQL with multiple order conditions', assert => {
+    const uql = {order: [{age: 'ASC'}, {lastName: 'DESC'}]};
+    const expected = 'SELECT * FROM single_table ORDER BY age ASC, last_name DESC';
+    const actual = select(uql);
+    assert('equal', actual, expected);
+  });
+
+  test('should create correct SQL with where conditions and multiple order conditions', assert => {
+    const uql = {where: {'job.title': 'Programmer'}, order: [{age: 'ASC'}, {lastName: 'DESC'}]};
+    const expected = 'SELECT * FROM single_table WHERE job->>\'title\'=\'Programmer\' ' +
+     'ORDER BY age ASC, last_name DESC';
     const actual = select(uql);
     assert('equal', actual, expected);
   });

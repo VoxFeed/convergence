@@ -9,7 +9,7 @@ const schema = require('test/test-helpers/build-single-table-schema')(driver);
 suite('Postgres Crud', (test) => {
   test('findOne: should return promise', (assert) => {
     const crud = Crud(driver, schema);
-    const actual = crud.findOne({name: 'Jon'}).constructor.name;
+    const actual = crud.findOne({where: {name: 'Jon'}}).constructor.name;
     const expected = 'Promise';
     assert('equal', actual, expected);
   });
@@ -17,7 +17,7 @@ suite('Postgres Crud', (test) => {
   test('findOne: should return select statement', (assert) => new Promise((resolve) => {
     const crud = Crud(driver, schema);
 
-    crud.findOne({name: 'Jon'})
+    crud.findOne({where: {name: 'Jon'}})
       .then(sql => {
         const expected = true;
         const actual = sql.includes('SELECT');
@@ -29,7 +29,7 @@ suite('Postgres Crud', (test) => {
   test('findOne: should return select statement and include all fields', (assert) => new Promise((resolve) => {
     const crud = Crud(driver, schema);
 
-    crud.findOne({name: 'Jon', lastName: 'Doe', age: 23})
+    crud.findOne({where: {name: 'Jon', lastName: 'Doe', age: 23}})
       .then(sql => {
         const expected = true;
         ['SELECT * FROM', 'name', 'last_name', 'age'].forEach(field => {

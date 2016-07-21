@@ -9,23 +9,30 @@ const schema = require('test/test-helpers/build-single-table-schema')(driver);
 
 const {select, insert} = PostgresTranspiler(schema);
 
-suite('Postgres Transpiler: Select', (test) => {
-  test('should create correct conditions with one condition', (assert) => {
-    const uql = {name: 'Jon'};
+suite('Postgres Transpiler: Select', test => {
+  test('should return correct sql if no where clause is sent', assert => {
+    const uql = {};
+    const expected = 'SELECT * FROM single_table';
+    const actual = select(uql);
+    assert('equal', actual, expected);
+  });
+
+  test('should create correct conditions with one condition', assert => {
+    const uql = {where: {name: 'Jon'}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
-  test('should create correct conditions with two conditions', (assert) => {
-    const uql = {name: 'Jon', lastName: 'Doe'};
+  test('should create correct conditions with two conditions', assert => {
+    const uql = {where: {name: 'Jon', lastName: 'Doe'}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
   test('should create correct conditions with three conditions', (assert) => {
-    const uql = {name: 'Jon', lastName: 'Doe', age: 23};
+    const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\' AND age=23';
     const actual = select(uql);
     assert('equal', actual, expected);
@@ -33,9 +40,8 @@ suite('Postgres Transpiler: Select', (test) => {
 
   test('should create correct conditions with a date range condition', (assert) => {
     const uql = {
-      createdAt: {
-        $gte: new Date(startDate),
-        $lt: new Date(endDate)
+      where: {
+        createdAt: {$gte: new Date(startDate), $lt: new Date(endDate)}
       }
     };
     const actual = select(uql);
@@ -51,7 +57,7 @@ suite('Postgres Transpiler: Select', (test) => {
         $lt: new Date(endDate)
       }
     };
-    const uql = Object.assign({}, regularConds, dateRange);
+    const uql = {where: Object.assign({}, regularConds, dateRange)};
     const actual = select(uql);
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\' AND age=23 AND ' +
      `created_at >= \'${startDate}\' AND created_at < '${endDate}'`;
@@ -59,28 +65,28 @@ suite('Postgres Transpiler: Select', (test) => {
   });
 
   test('should create correct conditions with $or operator', (assert) => {
-    const uql = {$or: [{name: 'Jon'}, {lastName: 'Doe'}]};
+    const uql = {where: {$or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' OR last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
   test('should create correct conditions with explicit $and operator', (assert) => {
-    const uql = {$and: [{name: 'Jon'}, {lastName: 'Doe'}]};
+    const uql = {where: {$and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
     const expected = 'SELECT * FROM single_table WHERE name=\'Jon\' AND last_name=\'Doe\'';
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
   test('should create correct conditions with a single $lt operator', (assert) => {
-    const uql = {tracked: true, createdAt: {$lt: new Date(startDate)}};
+    const uql = {where: {tracked: true, createdAt: {$lt: new Date(startDate)}}};
     const expected = `SELECT * FROM single_table WHERE tracked=true AND created_at < '${startDate}'`;
     const actual = select(uql);
     assert('equal', actual, expected);
   });
 
   test('should create correct conditions for single json inner query', (assert) => {
-    const uql = {'job.title': 'Programmer'};
+    const uql = {where: {'job.title': 'Programmer'}};
     const expected = 'SELECT * FROM single_table WHERE job->>\'title\'=\'Programmer\'';
     const actual = select(uql);
     assert('equal', actual, expected);

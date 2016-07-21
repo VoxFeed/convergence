@@ -32,19 +32,19 @@ suite('Memory Filter', (test) => {
     assert('equal', actual, expected);
   });
 
-  test('should find with date ranges in one field $gte and $lt', (assert) => {
+  test('should find with date ranges in one field gte and lt', (assert) => {
     const startDate = new Date('2015-09-01T00:00:00.000Z');
     const endDate = new Date('2016-01-01T00:00:00.000Z');
-    const uql = {createdAt: {$gte: new Date(startDate), $lt: new Date(endDate)}};
+    const uql = {createdAt: {gte: new Date(startDate), lt: new Date(endDate)}};
     const expected = [3, 4, 5, 6];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
   });
 
-  test('should find with date ranges in one field $gt and $lte', (assert) => {
+  test('should find with date ranges in one field gt and lte', (assert) => {
     const startDate = new Date('2015-10-01T00:00:00.000Z');
     const endDate = new Date('2015-12-01T00:00:00.000Z');
-    const uql = {createdAt: {$gt: new Date(startDate), $lte: new Date(endDate)}};
+    const uql = {createdAt: {gt: new Date(startDate), lte: new Date(endDate)}};
     const expected = [3, 5, 6];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
@@ -56,8 +56,8 @@ suite('Memory Filter', (test) => {
     const regularConds = {name: 'Jon'};
     const dateRange = {
       createdAt: {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        gte: new Date(startDate),
+        lte: new Date(endDate)
       }
     };
     const uql = Object.assign({}, regularConds, dateRange);
@@ -66,36 +66,36 @@ suite('Memory Filter', (test) => {
     assert('equal', actual.join(), expected.join());
   });
 
-  test('should find records with $or operator', (assert) => {
-    const uql = {$or: [{name: 'Gibran'}, {lastName: 'Argumedo'}]};
+  test('should find records with or operator', (assert) => {
+    const uql = {or: [{name: 'Gibran'}, {lastName: 'Argumedo'}]};
     const expected = [3, 4];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
   });
 
-  test('should find no records with $or operator and impossible conditions', (assert) => {
-    const uql = {$or: [{name: 'Leafar'}, {lastName: 'Huichops'}]};
+  test('should find no records with or operator and impossible conditions', (assert) => {
+    const uql = {or: [{name: 'Leafar'}, {lastName: 'Huichops'}]};
     const expected = [];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
   });
 
-  test('should find records with $and operator', (assert) => {
-    const uql = {$and: [{name: 'Gibran'}, {lastName: 'Arias'}]};
+  test('should find records with and operator', (assert) => {
+    const uql = {and: [{name: 'Gibran'}, {lastName: 'Arias'}]};
     const expected = [3];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
   });
 
-  test('should find no records with $and operator and impossible conditions', (assert) => {
-    const uql = {$and: [{name: 'Gibran'}, {lastName: 'Argumedo'}]};
+  test('should find no records with and operator and impossible conditions', (assert) => {
+    const uql = {and: [{name: 'Gibran'}, {lastName: 'Argumedo'}]};
     const expected = [];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
   });
 
-  test('should find records with implicit and operator and a $lt operator in a single field', (assert) => {
-    const uql = {tracked: true, createdAt: {$lt: new Date('2016-02-18T00:00:00.000Z')}};
+  test('should find records with implicit and operator and a lt operator in a single field', (assert) => {
+    const uql = {tracked: true, createdAt: {lt: new Date('2016-02-18T00:00:00.000Z')}};
     const expected = [2, 3, 4];
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());

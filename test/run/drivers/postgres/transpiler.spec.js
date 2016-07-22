@@ -7,7 +7,7 @@ const PostgresTranspiler = require('lib/drivers/postgres/transpiler');
 const driver = {engine: 'postgres', connection: {pool: {}}};
 const schema = require('test/test-helpers/build-single-table-schema')(driver);
 
-const {select, insert} = PostgresTranspiler(schema);
+const {select, insert, update} = PostgresTranspiler(schema);
 
 suite('Postgres Transpiler: Select', test => {
   test('should return correct sql if no where clause is sent', assert => {
@@ -148,6 +148,57 @@ suite('Postgres Transpiler: Insert', (test) => {
     const expected = 'INSERT INTO single_table (name, last_name, age, tracked, job) ' +
       'VALUES (\'Jon\', \'Doe\', 23, false, \'{"title":"Programmer","company":"VoxFeed"}\')';
     const actual = insert(data);
+    assert('equal', actual, expected);
+  });
+});
+
+suite('Postgres Transpiler: Update', test => {
+  test('should create update SQL with one field', assert => {
+    const data = {name: 'Jon'};
+    const query = {where: {'job.title': 'Programmer'}};
+    const expected = 'UPDATE single_table SET name=\'Jon\' WHERE job->>\'title\'=\'Programmer\'';
+    const actual = update(query, data);
+    assert('equal', actual, expected);
+  });
+
+  test('should create update SQL with one field and no conditions', assert => {
+    const data = {name: 'Jon'};
+    const query = {};
+    const expected = 'UPDATE single_table SET name=\'Jon\'';
+    const actual = update(query, data);
+    assert('equal', actual, expected);
+  });
+
+  test('should create update SQL with one field and unexistent conditions', assert => {
+    const data = {name: 'Jon'};
+    let query;
+    const expected = 'UPDATE single_table SET name=\'Jon\'';
+    const actual = update(query, data);
+    assert('equal', actual, expected);
+  });
+
+  test('should return empty string if no data is sent', assert => {
+    const query = {where: {name: 'Jon'}};
+    const expected = '';
+    const actual = update(query);
+    assert('equal', actual, expected);
+  });
+
+  test('should create update SQL with one full json field', assert => {
+    const data = {'job': {title: 'Programmer', companyName: 'VoxFeed'}};
+    const query = {where: {name: 'Jon'}};
+    const expected = '' +
+      'UPDATE single_table SET job=\'{"title":"Programmer","company_name":"VoxFeed"}\' ' +
+      'WHERE name=\'Jon\'';
+    const actual = update(query, data);
+    assert('equal', actual, expected);
+  });
+
+  test('should create update SQL with one atribute in json field', assert => {
+    const data = {'job.title': 'Programmer'};
+    const query = {where: {name: 'Jon'}};
+    const expected = 'UPDATE single_table SET job->>\'title\'=\'Programmer\' WHERE name=\'Jon\'';
+    const actual = update(query, data);
     assert('equal', actual, expected);
   });
 });

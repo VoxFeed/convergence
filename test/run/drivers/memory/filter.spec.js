@@ -114,4 +114,60 @@ suite('Memory Filter', (test) => {
     const actual = filter(uql).map(p => p.id).sort();
     assert('equal', actual.join(), expected.join());
   });
+
+  test('should order by field ascendent', (assert) => {
+    const uql = {order: {'name': 'asc'}};
+    const expected = [6, 2, 3, 5, 1, 4];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should order by field descendent', (assert) => {
+    const uql = {order: {'name': 'desc'}};
+    const expected = [4, 1, 5, 3, 2, 6];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should order by two fields ascendent', (assert) => {
+    const uql = {order: {'job.title': 'asc', name: 'asc'}};
+    const expected = [1, 6, 2, 5, 4, 3];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should order by two fields descendent', (assert) => {
+    const uql = {order: {'job.title': 'desc', name: 'desc'}};
+    const expected = [3, 4, 5, 2, 6, 1];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should order by one field ascendent and one descendent', (assert) => {
+    const uql = {order: {'job.title': 'asc', name: 'desc'}};
+    const expected = [1, 4, 5, 2, 6, 3];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should order by one field descendent and one ascendent', (assert) => {
+    const uql = {order: {'job.title': 'desc', name: 'asc'}};
+    const expected = [3, 6, 2, 5, 4, 1];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should order by one field descendent and one ascendent', (assert) => {
+    const uql = {order: {'job.title': 'desc', name: 'asc'}};
+    const expected = [3, 6, 2, 5, 4, 1];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should find value in a nested attribute and order by a field', (assert) => {
+    const uql = {where: {'job.title': 'Programmer'}, order: {name: 'asc'}};
+    const expected = [6, 2, 5, 4];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
 });

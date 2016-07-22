@@ -170,4 +170,39 @@ suite('Memory Filter', (test) => {
     const actual = filter(uql).map(p => p.id);
     assert('equal', actual.join(), expected.join());
   });
+
+  test('should limit the result to a limit of n', (assert) => {
+    const uql = {limit: 3};
+    const expected = [1, 2, 3];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should limit the result to a limit of n', (assert) => {
+    const uql = {limit: 5};
+    const expected = [1, 2, 3, 4, 5];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should not limit the result when limit is greater than total records', (assert) => {
+    const uql = {limit: 10};
+    const expected = [1, 2, 3, 4, 5, 6];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should return empty when limit is less or equal than zero', (assert) => {
+    const uql = {limit: 0};
+    const expected = [];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should return records with a query, order and limit', (assert) => {
+    const uql = {order: {'job.title': 'desc', name: 'asc'}, limit: 2};
+    const expected = [3, 6];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
 });

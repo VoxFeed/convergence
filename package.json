@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Unified Query Language",
   "scripts": {
-    "test": "tape test/run/index.js test/run/**/*.spec.js",
+    "test": "istanbul cover tape test/run/index.js test/run/**/*.spec.js | tap-spec",
     "test-dev": "tape test/run/index.js test/run/**/*.spec.js | tap-spec || echo ''",
     "tdd": "nodemon -q -x 'npm run test-dev'"
   },
@@ -19,6 +19,7 @@
   "devDependencies": {
     "app-module-path": "^1.1.0",
     "eslint": "^3.1.0",
+    "istanbul": "^0.4.4",
     "nodemon": "^1.9.2",
     "proxyquire": "^1.7.10",
     "suitape": "^1.0.5",

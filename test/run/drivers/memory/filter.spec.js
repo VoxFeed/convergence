@@ -205,4 +205,39 @@ suite('Memory Filter', (test) => {
     const actual = filter(uql).map(p => p.id);
     assert('equal', actual.join(), expected.join());
   });
+
+  test('should skip the result to a skip of n', (assert) => {
+    const uql = {skip: 3};
+    const expected = [4, 5, 6];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should skip the result to a skip of n', (assert) => {
+    const uql = {skip: 4};
+    const expected = [5, 6];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should return empty when skip is greater than total records', (assert) => {
+    const uql = {skip: 10};
+    const expected = [];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should not skip the result when skip is less or equal than zero', (assert) => {
+    const uql = {skip: 0};
+    const expected = [1, 2, 3, 4, 5, 6];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
+
+  test('should return records with a query, order and skip, and skip', (assert) => {
+    const uql = {order: {'job.title': 'desc', name: 'asc'}, skip: 2, limit: 2};
+    const expected = [2, 5];
+    const actual = filter(uql).map(p => p.id);
+    assert('equal', actual.join(), expected.join());
+  });
 });

@@ -77,8 +77,7 @@ suite('Postgres Crud', (test) => {
       crud.insert({unknown: 'Field'})
         .then(reject)
         .catch(err => assert('equal', err.name, BAD_INPUT))
-        .then(resolve)
-        .catch(reject);
+        .then(resolve);
     });
   });
 
@@ -109,16 +108,36 @@ suite('Postgres Crud', (test) => {
     });
   });
 
-  test('update: should return update statement', (assert) => new Promise((resolve) => {
-    crud.update({name: 'Jon'}, {lastName: 'Doe'})
-      .then(sql => {
-        const expected = true;
-        ['UPDATE', 'SET', 'name', 'last_name'].forEach(field => {
-          const actual = sql.includes(field);
-          assert('equal', actual, expected);
-        });
-      })
-      .then(resolve)
-      .catch(resolve);
-  }));
+  test('update: should return update statement', assert => {
+    return new Promise((resolve, reject) => {
+      crud.update({where: {name: 'Jon'}}, {lastName: 'Doe'})
+        .then(sql => {
+          const expected = true;
+          ['UPDATE', 'SET', 'name', 'last_name'].forEach(field => {
+            const actual = sql.includes(field);
+            assert('equal', actual, expected);
+          });
+        })
+        .then(resolve)
+        .catch(reject);
+    });
+  });
+
+  test('update: should return error when trying to update with unkown field in data', assert => {
+    return new Promise((resolve, reject) => {
+      crud.update({where: {name: 'Jon'}}, {unknown: 'Field'})
+        .then(reject)
+        .catch(err => assert('equal', err.name, BAD_INPUT))
+        .then(resolve);
+    });
+  });
+
+  test('update: should return error when trying to update with unkown field in query', assert => {
+    return new Promise((resolve, reject) => {
+      crud.update({where: {unknown: 'Field'}}, {name: 'Jon'})
+        .then(reject)
+        .catch(err => assert('equal', err.name, BAD_INPUT))
+        .then(resolve);
+    });
+  });
 });

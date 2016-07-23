@@ -3,9 +3,8 @@
   "version": "0.0.1",
   "description": "Unified Query Language",
   "scripts": {
-    "test": "istanbul cover tape test/run/index.js test/run/**/*.spec.js | tap-spec",
-    "test-dev": "tape test/run/index.js test/run/**/*.spec.js | tap-spec || echo ''",
-    "tdd": "nodemon -q -x 'npm run test-dev'"
+    "test": "istanbul cover _mocha -- --recursive --ui bdd test/run/index.js test/run",
+    "test-dev": "mocha --recursive --ui bdd test/run/index.js test/run"
   },
   "engines": {
     "node": ">=6.2.0"
@@ -20,12 +19,11 @@
   },
   "devDependencies": {
     "app-module-path": "^1.1.0",
+    "chai": "^3.5.0",
     "eslint": "^3.1.0",
     "istanbul": "^0.4.4",
+    "mocha": "^2.5.3",
     "nodemon": "^1.9.2",
-    "proxyquire": "^1.7.10",
-    "suitape": "^1.0.5",
-    "tap-spec": "^4.1.1",
-    "tape": "^4.6.0"
+    "proxyquire": "^1.7.10"
   }
 }

@@ -4,7 +4,7 @@ const first = require('lodash/first');
 
 const MemoryFilter = require('lib/drivers/memory/filter');
 const fixtures = require('test/data/fixtures/persons');
-const store = {'single_table': fixtures.map(clone)};
+const store = {'persons': fixtures.map(clone)};
 const {memory} = require('lib/engines');
 const engine = memory(store);
 const schema = require('test/test-helpers/build-single-table-schema')(engine);

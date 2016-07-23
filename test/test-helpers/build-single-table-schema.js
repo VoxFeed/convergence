@@ -1,7 +1,8 @@
 const {types, defineModel} = require('lib/model/definition');
 
-const collection = 'single_table';
+const collection = 'persons';
 const definition = {
+  id: types.INTEGER,
   name: types.STRING,
   lastName: types.STRING,
   age: types.INTEGER,

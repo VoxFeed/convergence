@@ -1,25 +1,22 @@
-const proxyquire = require('proxyquire');
-
-const MockExecuteSql = require('test/test-helpers/mocks/execute-sql');
 const unexpectedData = require('test/test-helpers/unexpected-data');
-const dbConfig = {
-  host: 'localhost',
-  port: '5435',
-  user: 'postgres',
-  database: 'test',
-  max: 10,
-  min: 2,
-  idleTimeoutMillis: 5000
-};
-
 const {postgres} = require('lib/engines');
-const Crud = proxyquire('lib/drivers/postgres/crud', {'./execute-sql': MockExecuteSql.build()});
-const engine = postgres(dbConfig);
-const schema = require('test/test-helpers/build-single-table-schema')(engine);
+const Crud = require('lib/drivers/postgres/crud');
+const engine = postgres({database: 'test'});
+
+const model = require('test/test-helpers/build-single-table-schema')(engine);
+const loadFixtures = require('test/data/fixtures');
+const resetDatabase = require('test/data/fixtures/reset-database');
+
 const BAD_INPUT = 'BAD_INPUT';
 
 describe('Postgres Crud', () => {
-  const crud = Crud(engine, schema);
+  const crud = Crud(engine, model);
+
+  beforeEach(done => {
+    resetDatabase(['persons'])
+      .then(() => done())
+      .catch(done);
+  });
 
   describe('findOne', () => {
     it('should return promise', () => {
@@ -36,31 +33,28 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
+      loadFixtures({persons: crud})
+        .then(() => crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
         .then(() => done())
         .catch(done);
     });
 
-    it('should return select statement', done => {
-      crud.findOne({where: {name: 'Jon'}})
-        .then(sql => {
-          const expected = true;
-          const actual = sql.includes('SELECT');
+    it('should return find correct record', done => {
+      loadFixtures({persons: crud})
+        .then(() => crud.findOne({where: {name: 'Jon'}}))
+        .then(person => {
+          const expected = 'Jon';
+          const actual = person.name;
           expect(actual).to.be.equal(expected);
         })
         .then(() => done())
         .catch(done);
     });
 
-    it('should return select statement and include all fields', done => {
-      crud.findOne({where: {name: 'Jon', lastName: 'Doe', age: 23}})
-        .then(sql => {
-          const expected = true;
-          ['SELECT * FROM', 'name', 'last_name', 'age'].forEach(field => {
-            const actual = sql.includes(field);
-            expect(actual).to.be.equal(expected);
-          });
-        })
+    it('should find no record', done => {
+      loadFixtures({persons: crud})
+        .then(() => crud.findOne({where: {name: 'Jon', lastName: 'Nope'}}))
+        .then(person => expect(person).not.to.exist)
         .then(() => done())
         .catch(done);
     });
@@ -74,33 +68,26 @@ describe('Postgres Crud', () => {
     });
 
     it('should return error when trying to insert unkown field', done => {
-      return new Promise((resolve, reject) => {
-        crud.insert({unknown: 'Field'})
-          .then(unexpectedData)
-          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
-          .then(() => done())
-          .catch(done);
-      });
+      crud.insert({unknown: 'Field'})
+        .then(unexpectedData)
+        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+        .then(() => done())
+        .catch(done);
     });
 
-    it('should return insert into statement', done => {
-      crud.insert({name: 'Jon'}).then(sql => {
-        const expected = true;
-        const actual = sql.includes('INSERT INTO');
-        expect(actual).to.be.equal(expected);
-      })
-      .then(() => done())
-      .catch(done);
-    });
-
-    it('should return insert into statement and include all fields', done => {
-      crud.insert({name: 'Jon', lastName: 'Doe', age: 23})
-        .then(sql => {
-          const expected = true;
-          ['INSERT INTO', 'name', 'last_name', 'age'].forEach(field => {
-            const actual = sql.includes(field);
-            expect(actual).to.be.equal(expected);
-          });
+    it('should create record', done => {
+      crud.insert({id: 999, name: 'Jon'})
+        .then(person => {
+          const expected = 'Jon';
+          const actual = person.name;
+          expect(actual).to.be.equal(expected);
+          return person;
+        })
+        .then(person => crud.findOne({where: {id: person.id}}))
+        .then(person => {
+          const expected = 'Jon';
+          const actual = person.name;
+          expect(actual).to.be.equal(expected);
         })
         .then(() => done())
         .catch(done);
@@ -108,21 +95,34 @@ describe('Postgres Crud', () => {
   });
 
   describe('Update', () => {
-    it('should return update statement', done => {
-      crud.update({where: {name: 'Jon'}}, {lastName: 'Doe'})
-        .then(sql => {
-          const expected = true;
-          ['UPDATE', 'SET', 'name', 'last_name'].forEach(field => {
-            const actual = sql.includes(field);
-            expect(actual).to.be.equal(expected);
-          });
-        })
+    beforeEach(done => {
+      loadFixtures({persons: crud})
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should update single existing record', done => {
+      const query = {where: {name: 'Jon'}};
+      const data = {lastName: 'Not Doe'};
+      const expectUpdate = person => {
+        const expected = 'Not Doe';
+        const actual = person.lastName;
+        expect(actual).to.be.equal(expected);
+        return person;
+      };
+
+      crud.update(query, data)
+        .then(expectUpdate)
+        .then(person => crud.findOne({where: {id: person.id}}))
+        .then(expectUpdate)
         .then(() => done())
         .catch(done);
     });
 
     it('should return error when trying to update with unkown field in data', done => {
-      crud.update({where: {name: 'Jon'}}, {unknown: 'Field'})
+      const query = {where: {name: 'Jon'}};
+      const data = {unknown: 'Field'};
+      crud.update(query, data)
         .then(unexpectedData)
         .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
         .then(() => done())
@@ -130,7 +130,19 @@ describe('Postgres Crud', () => {
     });
 
     it('should return error when trying to update with unkown field in query', done => {
-      crud.update({where: {unknown: 'Field'}}, {name: 'Jon'})
+      const query = {where: {unknown: 'Field'}};
+      const data = {name: 'Jon'};
+      crud.update(query, data)
+        .then(unexpectedData)
+        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return error if keyword where is missing', done => {
+      const query = {name: 'Jon'};
+      const data = {lastName: 'doe'};
+      crud.update(query, data)
         .then(unexpectedData)
         .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
         .then(() => done())

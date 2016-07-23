@@ -4,8 +4,8 @@ const startDate = '2001-02-11T00:00:00.000Z';
 const endDate = '2001-02-13T00:00:00.000Z';
 
 const PostgresTranspiler = require('lib/drivers/postgres/transpiler');
-const driver = {engine: 'postgres', connection: {pool: {}}};
-const schema = require('test/test-helpers/build-single-table-schema')(driver);
+const engine = {name: 'postgres', connection: {pool: {}}};
+const schema = require('test/test-helpers/build-single-table-schema')(engine);
 
 const {select, insert, update} = PostgresTranspiler(schema);
 

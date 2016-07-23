@@ -1,5 +1,6 @@
-const {types, defineSchema} = require('lib/schema/definition');
+const {types, defineModel} = require('lib/model/definition');
 
+const collection = 'single_table';
 const definition = {
   name: types.STRING,
   lastName: types.STRING,
@@ -9,4 +10,4 @@ const definition = {
   createdAt: types.DATE
 };
 
-module.exports = driver => defineSchema('single_table', driver, definition);
+module.exports = engine => defineModel(Object.assign({}, {collection, definition, engine}));

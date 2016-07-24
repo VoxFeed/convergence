@@ -18,7 +18,7 @@ describe('Postgres Crud', () => {
       .catch(done);
   });
 
-  describe('findOne', () => {
+  describe('Find One', () => {
     beforeEach(done => {
       loadFixtures({persons: crud})
         .then(() => done())
@@ -247,6 +247,68 @@ describe('Postgres Crud', () => {
         .then(expectUpdate)
         .then(person => crud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
+        .then(() => done())
+        .catch(done);
+    });
+  });
+
+  describe('Remove', () => {
+    beforeEach(done => {
+      loadFixtures({persons: crud})
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should remove all records if no query is sent', done => {
+      const query = {where: {}};
+
+      crud.remove(query)
+        .then(persons => expect(persons.length).to.be.equal(6))
+        .then(() => crud.find(query))
+        .then(persons => expect(persons.length).to.be.equal(0))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should remove correct record with one field', done => {
+      const query = {where: {name: 'Jon'}};
+      crud.remove(query)
+        .then(persons => {
+          expect(persons.length).to.be.equal(1);
+          const person = persons.pop();
+          expect(person.name).to.be.equal('Jon');
+          return person;
+        })
+        .then(person => crud.findOne({where: {id: person.id}}))
+        .then(person => expect(person).not.to.exist)
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should remove correct records with or operator', done => {
+      const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
+      crud.remove(query)
+        .then(persons => {
+          expect(persons.length).to.be.equal(2);
+          expect(persons.map(p => p.id).sort().join()).to.be.equal([1, 3].join());
+          return persons;
+        })
+        .then(() => crud.find(query))
+        .then(persons => expect(persons.length).to.be.equal(0))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should create correct records for single json inner query', done => {
+      const query = {where: {'job.title': 'Programmer'}};
+      crud.remove(query)
+        .then(persons => {
+          expect(persons.length).to.be.equal(4);
+          expect(persons.map(p => p.id).sort().join()).to.be.equal([2, 4, 5, 6].join());
+          return persons;
+        })
+        .then(() => crud.find(query))
+        .then(persons => expect(persons.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
     });

@@ -5,7 +5,7 @@ const PostgresTranspiler = require('lib/drivers/postgres/transpiler');
 const engine = {name: 'postgres', connection: {pool: {}}};
 const schema = require('test/test-helpers/build-single-table-schema')(engine);
 
-const {select, count, insert, update} = PostgresTranspiler(schema);
+const {select, count, insert, update, remove} = PostgresTranspiler(schema);
 
 describe('Postgres Transpiler', () => {
   describe('Select', () => {
@@ -309,6 +309,54 @@ describe('Postgres Transpiler', () => {
         'UPDATE persons SET job->>\'title\'=\'Programmer\'' +
         ' WHERE name=\'Jon\' RETURNING *';
       const actual = update(query, data);
+      expect(actual).to.be.equal(expected);
+    });
+  });
+
+  describe('Remove', () => {
+    it('should return correct sql if no where clause is sent', () => {
+      const uql = {};
+      const expected = 'DELETE FROM persons RETURNING *';
+      const actual = remove(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with one field', () => {
+      const query = {where: {name: 'Jon'}};
+      const expected = 'DELETE FROM persons WHERE name=\'Jon\' RETURNING *';
+      const actual = remove(query);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with many conditions', () => {
+      const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
+      const expected = 'DELETE FROM persons WHERE name=\'Jon\' AND ' +
+        'last_name=\'Doe\' AND age=23 AND rating=5.2 RETURNING *';
+      const actual = remove(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with bad values', () => {
+      const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
+      const expected = 'DELETE FROM persons WHERE name=\'123\' AND ' +
+        'last_name=null AND age=null AND rating=null RETURNING *';
+      const actual = remove(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with or operator', () => {
+      const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+      const expected = 'DELETE FROM persons WHERE name=\'Jon\' OR ' +
+       'last_name=\'Doe\' RETURNING *';
+      const actual = remove(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL for single json inner query', () => {
+      const uql = {where: {'job.title': 'Programmer'}};
+      const expected = 'DELETE FROM persons WHERE ' +
+        'job->>\'title\'=\'Programmer\' RETURNING *';
+      const actual = remove(uql);
       expect(actual).to.be.equal(expected);
     });
   });

@@ -1,11 +1,17 @@
 {
-  "name": "UQL",
+  "name": "converge",
   "version": "0.0.1",
-  "description": "Unified Query Language",
+  "description": "",
+  "main": "lib/index.js",
   "scripts": {
     "test": "istanbul cover _mocha -- --recursive --ui bdd test/run/index.js test/run",
     "test-dev": "mocha --recursive --ui bdd test/run/index.js test/run"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VoxFeed/converge.git"
+  },
+  "author": "VoxFeed",
   "engines": {
     "node": ">=6.2.0"
   },

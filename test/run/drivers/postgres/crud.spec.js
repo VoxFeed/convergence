@@ -19,6 +19,12 @@ describe('Postgres Crud', () => {
   });
 
   describe('findOne', () => {
+    beforeEach(done => {
+      loadFixtures({persons: crud})
+        .then(() => done())
+        .catch(done);
+    });
+
     it('should return promise', () => {
       const actual = crud.findOne({where: {name: 'Jon'}}).constructor.name;
       const expected = 'Promise';
@@ -55,6 +61,48 @@ describe('Postgres Crud', () => {
       loadFixtures({persons: crud})
         .then(() => crud.findOne({where: {name: 'Jon', lastName: 'Nope'}}))
         .then(person => expect(person).not.to.exist)
+        .then(() => done())
+        .catch(done);
+    });
+  });
+
+  describe('Find', () => {
+    beforeEach(done => {
+      loadFixtures({persons: crud})
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return matching records', done => {
+      const query = {where: {or: [{id: 1}, {id: 3}]}};
+      crud.find(query)
+        .then(persons => {
+          const actual = [1, 3].join();
+          const expected = persons.map(p => p.id).sort().join();
+          expect(actual).to.be.equal(expected);
+        })
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should find no record', done => {
+      loadFixtures({persons: crud})
+        .then(() => crud.find({where: {name: 'Jon', lastName: 'Nope'}}))
+        .then(persons => expect(persons.length).to.be.equal(0))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return error if unknown fields are sent', done => {
+      crud.find({where: {unknown: 'field'}})
+        .then(data => unexpectedData(data || {}))
+        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+        .then(() => done());
+    });
+
+    it('should not return error if operators are sent', done => {
+      loadFixtures({persons: crud})
+        .then(() => crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
         .then(() => done())
         .catch(done);
     });

@@ -5,7 +5,7 @@ const PostgresTranspiler = require('lib/drivers/postgres/transpiler');
 const engine = {name: 'postgres', connection: {pool: {}}};
 const schema = require('test/test-helpers/build-single-table-schema')(engine);
 
-const {select, insert, update} = PostgresTranspiler(schema);
+const {select, count, insert, update} = PostgresTranspiler(schema);
 
 describe('Postgres Transpiler', () => {
   describe('Select', () => {
@@ -119,6 +119,105 @@ describe('Postgres Transpiler', () => {
       const expected = 'SELECT * FROM persons WHERE job->>\'title\'=\'Programmer\' ' +
        'ORDER BY age ASC, last_name DESC';
       const actual = select(uql);
+      expect(actual).to.be.equal(expected);
+    });
+  });
+
+  describe('Count', () => {
+    it('should return correct SQL if no where clause is sent', () => {
+      const uql = {};
+      const expected = 'SELECT COUNT(*) FROM persons';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with one condition', () => {
+      const uql = {where: {name: 'Jon'}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE name=\'Jon\'';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with two conditions', () => {
+      const uql = {where: {name: 'Jon', lastName: 'Doe'}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE name=\'Jon\' ' +
+        'AND last_name=\'Doe\'';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with four conditions', () => {
+      const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE name=\'Jon\' AND ' +
+        'last_name=\'Doe\' AND age=23 AND rating=5.2';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with bad values', () => {
+      const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE name=\'123\' AND ' +
+        'last_name=null AND age=null AND rating=null';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with a date range condition', () => {
+      const uql = {
+        where: {
+          createdAt: {gte: new Date(startDate), lt: new Date(endDate)}
+        }
+      };
+      const actual = count(uql);
+      const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
+        `created_at >= \'${startDate}\' AND created_at < '${endDate}'`;
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with regular and date range conditions', () => {
+      const regularConds = {name: 'Jon', lastName: 'Doe', age: 23};
+      const dateRange = {
+        createdAt: {
+          gte: new Date(startDate),
+          lt: new Date(endDate)
+        }
+      };
+      const uql = {where: Object.assign({}, regularConds, dateRange)};
+      const actual = count(uql);
+      const expected = 'SELECT COUNT(*) FROM persons WHERE name=\'Jon\' AND ' +
+        'last_name=\'Doe\' AND age=23 AND ' +
+       `created_at >= \'${startDate}\' AND created_at < '${endDate}'`;
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with or operator', () => {
+      const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE name=\'Jon\' OR last_name=\'Doe\'';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with explicit and operator', () => {
+      const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
+        'name=\'Jon\' AND last_name=\'Doe\'';
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with a single lt operator', () => {
+      const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
+        `tracked=true AND created_at < '${startDate}'`;
+      const actual = count(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL for single json inner query', () => {
+      const uql = {where: {'job.title': 'Programmer'}};
+      const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
+        'job->>\'title\'=\'Programmer\'';
+      const actual = count(uql);
       expect(actual).to.be.equal(expected);
     });
   });

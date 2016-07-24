@@ -31,8 +31,17 @@ describe('Postgres Transpiler', () => {
     });
 
     it('should create correct SQL with three conditions', () => {
-      const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23}};
-      const expected = 'SELECT * FROM persons WHERE name=\'Jon\' AND last_name=\'Doe\' AND age=23';
+      const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
+      const expected = 'SELECT * FROM persons WHERE name=\'Jon\' AND ' +
+        'last_name=\'Doe\' AND age=23 AND rating=5.2';
+      const actual = select(uql);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('should create correct SQL with bad values', () => {
+      const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
+      const expected = 'SELECT * FROM persons WHERE name=\'123\' AND ' +
+        'last_name=null AND age=null AND rating=null';
       const actual = select(uql);
       expect(actual).to.be.equal(expected);
     });

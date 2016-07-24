@@ -8,6 +8,7 @@ const definition = {
   age: types.INTEGER,
   tracked: types.BOOLEAN,
   job: types.JSON,
+  rating: types.DECIMAL,
   createdAt: types.DATE
 };
 

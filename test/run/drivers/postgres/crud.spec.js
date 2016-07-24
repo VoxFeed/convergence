@@ -196,5 +196,21 @@ describe('Postgres Crud', () => {
         .then(() => done())
         .catch(done);
     });
+
+    it('should update property in json field', done => {
+      const query = {where: {id: 1}};
+      const data = {'job.companyName': 'new value'};
+      const expectUpdate = person => {
+        expect(person.job).to.have.property('companyName', 'new value');
+        return person;
+      };
+
+      crud.update(query, data)
+        .then(expectUpdate)
+        .then(person => crud.findOne({where: {id: person.id}}))
+        .then(expectUpdate)
+        .then(() => done())
+        .catch(done);
+    });
   });
 });

@@ -1,56 +1,47 @@
-const {suite} = require('suitape');
 const clone = require('lodash/cloneDeep');
-const first = require('lodash/first');
+const {memory} = require('lib/engines');
+const Crud = require('lib/drivers/memory/crud');
+const personsFixtures = require('test/data/fixtures/persons');
+const store = {'persons': personsFixtures.map(clone)};
+const engine = memory(store);
+const model = require('test/test-helpers/build-single-table-schema')(engine);
+const isPlainObject = require('lodash/isPlainObject');
 
-const MemoryCRUD = require('lib/drivers/memory/crud');
-const fixtures = require('test/data/fixtures/persons');
+describe('Memory Crud', () => {
+  const crud = Crud(engine, model);
 
-const store = {'single_table': fixtures.map(clone)};
-const driver = {engine: 'memory', store};
-const schema = require('test/test-helpers/build-single-table-schema')(driver);
-const crud = MemoryCRUD(driver, schema);
+  describe('Find One', () => {
+    it('returns a promise', () => {
+      const actual = crud.findOne({where: {name: 'Jon'}}).constructor.name;
+      const expected = 'Promise';
+      expect(actual).to.be.equal(expected);
+    });
 
-suite('Memory Crud', (test) => {
-  test('findOne: should return a promise', (assert) => {
-    const actual = crud.findOne({where: {name: 'Jon'}}).constructor.name;
-    const expected = 'Promise';
-    assert('equal', actual, expected);
-  });
-
-  test('findOne: should return error if unknown fields are sent', (assert) => {
-    return new Promise((resolve, reject) => {
+    it('returns an error if unknown fields are sent', (done) => {
       crud.findOne({where: {unknown: 'field'}})
         .then(record => {
-          assert('equal', typeof record, 'undefined');
-          resolve();
+          expect(record).to.not.exist;
+          done();
         })
-        .catch(resolve);
+        .catch(done);
     });
-  });
 
-  test('findOne: should return a plain object', assert => {
-    return new Promise((resolve, reject) => {
+    it('should return a plain object', (done) => {
       crud.findOne({where: {name: 'Jon'}})
         .then(record => {
-          const expected = JSON.stringify(first(fixtures));
-          const actual = JSON.stringify(record);
-          assert('equal', actual, expected);
+          expect(isPlainObject(record)).to.be.true;
         })
-        .then(resolve)
-        .catch(reject);
+        .then(() => done())
+        .catch(done);
     });
-  });
 
-  test('findOne: should return first object found', assert => {
-    return new Promise((resolve, reject) => {
+    it('should return first object found', (done) => {
       crud.findOne({where: {'job.title': 'Programmer'}})
         .then(record => {
-          const expected = JSON.stringify(fixtures[1]);
-          const actual = JSON.stringify(record);
-          assert('equal', actual, expected);
+          expect(record).to.be.deep.equal(personsFixtures[1]);
         })
-        .then(resolve)
-        .catch(reject);
+        .then(() => done())
+        .catch(done);
     });
   });
 });

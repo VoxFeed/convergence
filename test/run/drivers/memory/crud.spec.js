@@ -86,4 +86,34 @@ describe('Memory Crud', () => {
         .catch(done);
     });
   });
+
+  describe('Count', () => {
+    it('should return matching count', (done) => {
+      const query = {where: {or: [{id: 1}, {id: 3}]}};
+      crud.count(query)
+        .then(count => expect(count).to.be.equal(2))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return 0', done => {
+      crud.count({where: {name: 'Jon', lastName: 'Nope'}})
+        .then(count => expect(count).to.be.equal(0))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return error if unknown fields are sent', done => {
+      crud.count({where: {unknown: 'field'}})
+        .then(() => done('unexpected data'))
+        .catch(err => expect(err.name).to.be.equal('BAD_INPUT'))
+        .then(() => done());
+    });
+
+    it('should not return error if operators are sent', done => {
+      crud.count({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
+        .then(() => done())
+        .catch(done);
+    });
+  });
 });

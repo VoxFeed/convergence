@@ -88,5 +88,74 @@ describe('Model', () => {
   });
 
   describe('getFieldType', () => {
+    const model = require('test/test-helpers/build-single-table-schema')(engine);
+
+    it('should get correct type for fields', () => {
+      expect(model.getFieldType('id')).to.be.equal('integer');
+      expect(model.getFieldType('name')).to.be.equal('string');
+      expect(model.getFieldType('last_name')).to.be.equal('string');
+      expect(model.getFieldType('age')).to.be.equal('integer');
+      expect(model.getFieldType('tracked')).to.be.equal('boolean');
+      expect(model.getFieldType('job')).to.be.equal('json');
+      expect(model.getFieldType('rating')).to.be.equal('decimal');
+      expect(model.getFieldType('created_at')).to.be.equal('date');
+    });
+
+    it('should return undefined id field is unkwown', () => {
+      expect(model.getFieldType('unkwown')).not.to.exist;
+    });
+  });
+
+  describe('validatesUniquenessOf', () => {
+    const buildModel = require('test/test-helpers/build-single-table-schema');
+
+    it('should add known field to list of unique indexes', () => {
+      const model = buildModel(engine);
+      model.validatesUniquenessOf('name');
+      expect(model.getUniqueIndexes()).to.include('name');
+    });
+
+    it('should add list of known field to list of unique indexes', () => {
+      const model = buildModel(engine);
+      model.validatesUniquenessOf('name', 'age');
+      expect(model.getUniqueIndexes()).to.include('name');
+      expect(model.getUniqueIndexes()).to.include('age');
+      expect(model.getUniqueIndexes()).not.to.include('tracked');
+    });
+
+    it('should transform to snake case a field added to unique indexes', () => {
+      const model = buildModel(engine);
+      model.validatesUniquenessOf('lastName');
+      expect(model.getUniqueIndexes()).to.include('last_name');
+    });
+
+    it('should ignore unkwown fields', () => {
+      const model = buildModel(engine);
+      const uniques = model.validatesUniquenessOf('name', 'unkwown', 'lastName');
+      expect(uniques).to.include('name');
+      expect(uniques).to.include('last_name');
+      expect(uniques).not.to.include('unkwown');
+      expect(model.getUniqueIndexes()).to.include('name');
+      expect(model.getUniqueIndexes()).to.include('last_name');
+      expect(model.getUniqueIndexes()).not.to.include('unkwon');
+    });
+
+    it('should return empty array if all are unkwown fields', () => {
+      const model = buildModel(engine);
+      const uniques = model.validatesUniquenessOf('nope', 'unkwown');
+      expect(uniques.length).to.be.equal(0);
+      expect(model.getUniqueIndexes().length).to.be.equal(0);
+    });
+
+    it('should ingore repeated fields', () => {
+      const model = buildModel(engine);
+      const uniques = model.validatesUniquenessOf('name', 'age', 'name');
+      expect(uniques.length).to.be.equal(2);
+      expect(uniques).to.include('name');
+      expect(uniques).to.include('age');
+      expect(model.getUniqueIndexes().length).to.be.equal(2);
+      expect(model.getUniqueIndexes()).to.include('name');
+      expect(model.getUniqueIndexes()).to.include('age');
+    });
   });
 });

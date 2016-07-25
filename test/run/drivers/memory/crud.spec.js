@@ -1,18 +1,21 @@
+const isArray = require('lodash/isArray');
+const snakeobj = require('snakeobj');
+const isPlainObject = require('lodash/isPlainObject');
+
 const {memory} = require('lib/engines');
 const Crud = require('lib/drivers/memory/crud');
-const snakeobj = require('snakeobj');
+
 const personsFixtures = require('test/data/fixtures/persons');
-const store = {'persons': personsFixtures.map(person => snakeobj(person))};
-const engine = memory(store);
-const model = require('test/test-helpers/build-single-table-schema')(engine);
-const isPlainObject = require('lodash/isPlainObject');
-const isArray = require('lodash/isArray');
+const buildModel = require('test/test-helpers/build-single-table-schema');
 const unexpectedData = require('test/test-helpers/unexpected-data');
 
 describe('Memory Crud', () => {
   let crud;
 
   beforeEach(() => {
+    const store = {'persons': personsFixtures.map(person => snakeobj(person))};
+    const engine = memory(store);
+    const model = buildModel(engine);
     crud = Crud(engine, model);
   });
 

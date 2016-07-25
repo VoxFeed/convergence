@@ -3,7 +3,7 @@ const snakeobj = require('snakeobj');
 const isPlainObject = require('lodash/isPlainObject');
 
 const {memory} = require('lib/engines');
-const Crud = require('lib/drivers/memory/crud');
+const Crud = require('lib/model/crud');
 
 const personsFixtures = require('test/data/fixtures/persons');
 const buildModel = require('test/test-helpers/build-single-table-schema');

@@ -1,6 +1,6 @@
 const unexpectedData = require('test/test-helpers/unexpected-data');
 const {postgres} = require('lib/engines');
-const Crud = require('lib/drivers/postgres/crud');
+const Crud = require('lib/model/crud');
 const engine = postgres({database: 'test'});
 
 const model = require('test/test-helpers/build-single-table-schema')(engine);

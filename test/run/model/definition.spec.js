@@ -158,4 +158,60 @@ describe('Model', () => {
       expect(model.getUniqueIndexes()).to.include('age');
     });
   });
+
+  describe('extend', () => {
+    const PostModel = defineModel({
+      collection: 'posts',
+      engine,
+      definition: {
+        id: types.INTEGER,
+        externalId: types.STRING
+      }
+    });
+
+    it('accepts returns extended model object', () => {
+      const DetailedPostModel = defineModel({
+        collection: 'detailed_posts',
+        engine,
+        definition: {
+          content: types.TEXT,
+          postId: types.INTEGER
+        }
+      });
+
+      const result = DetailedPostModel.extend(PostModel, 'postId');
+      expect(result).to.exist;
+      expect(result.foreignKey).to.be.equal('post_id');
+      expect(result.name).to.be.equal('posts');
+      expect(result.model).to.be.deep.equal(PostModel);
+    });
+
+    it('returs undefined if foreign key is not a valid field', () => {
+      const DetailedPostModel = defineModel({
+        collection: 'detailed_posts',
+        engine,
+        definition: {
+          content: types.TEXT
+        }
+      });
+      const result = DetailedPostModel.extend(PostModel, 'postId');
+      expect(result).not.to.exist;
+    });
+
+    it('returns undefined if model does not look like model', () => {
+      const NotAModel = {
+        notAModel: 'nope'
+      };
+      const DetailedPostModel = defineModel({
+        collection: 'detailed_posts',
+        engine,
+        definition: {
+          content: types.TEXT,
+          postId: types.STRING
+        }
+      });
+      const result = DetailedPostModel.extend(NotAModel, 'postId');
+      expect(result).not.to.exist;
+    });
+  });
 });

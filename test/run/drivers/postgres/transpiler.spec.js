@@ -139,6 +139,43 @@ describe('Postgres Transpiler', () => {
     });
   });
 
+  describe('Extended Select', () => {
+    let transpiler;
+
+    beforeEach(() => {
+      const extended = defineModel({
+        collection: 'employees',
+        engine,
+        definition: {
+          personId: types.INTEGER,
+          schedule: types.STRING,
+          entryDate: types.DATE,
+          ssn: types.STRING
+        }
+      });
+      extended.extend(model, 'personId');
+      transpiler = PostgresTranspiler(extended);
+    });
+
+    it('creates sql with one field in each table', () => {
+      const query = {where: {name: 'Jon', ssn: '23534564356'}};
+      const expected = '' +
+        'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id ' +
+        'WHERE persons.name=\'Jon\' AND employees.ssn=\'23534564356\'';
+      const actual = transpiler.select(query);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('creates sql with one field in one table', () => {
+      const query = {where: {id: 1}};
+      const expected = '' +
+        'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id ' +
+        'WHERE persons.id=1';
+      const actual = transpiler.select(query);
+      expect(actual).to.be.equal(expected);
+    });
+  });
+
   describe('Count', () => {
     let transpiler;
     beforeEach(() => {
@@ -312,7 +349,7 @@ describe('Postgres Transpiler', () => {
       'WITH NEW_PARENT_RECORD as (' +
         'INSERT INTO persons (name) VALUES (\'Jon\') RETURNING id) ' +
       'INSERT INTO employees (schedule, person_id) VALUES ' +
-        '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)) ' +
+        '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
       'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
@@ -324,7 +361,7 @@ describe('Postgres Transpiler', () => {
       'WITH NEW_PARENT_RECORD as (' +
         'INSERT INTO persons (name, last_name) VALUES (\'Jon\', \'Doe\') RETURNING id) ' +
       'INSERT INTO employees (person_id) VALUES ' +
-        '((SELECT id FROM NEW_PARENT_RECORD)) ' +
+        '((SELECT id FROM NEW_PARENT_RECORD)); ' +
       'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
@@ -336,7 +373,7 @@ describe('Postgres Transpiler', () => {
       'WITH NEW_PARENT_RECORD as (' +
         'INSERT INTO persons () VALUES () RETURNING id) ' +
       'INSERT INTO employees (schedule, person_id) VALUES ' +
-        '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)) ' +
+        '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
       'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
@@ -348,7 +385,7 @@ describe('Postgres Transpiler', () => {
       'WITH NEW_PARENT_RECORD as (' +
         'INSERT INTO persons () VALUES () RETURNING id) ' +
       'INSERT INTO employees (person_id) VALUES ' +
-        '((SELECT id FROM NEW_PARENT_RECORD)) ' +
+        '((SELECT id FROM NEW_PARENT_RECORD)); ' +
       'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);

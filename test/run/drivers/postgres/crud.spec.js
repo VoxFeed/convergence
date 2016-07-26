@@ -3,6 +3,7 @@ const {postgres} = require('lib/engines');
 const Crud = require('lib/model/crud');
 const engine = postgres({database: 'test'});
 
+const {defineModel, types} = require('lib/model/definition');
 const model = require('test/test-helpers/build-single-table-schema')(engine);
 const loadFixtures = require('test/data/fixtures');
 const resetDatabase = require('test/data/fixtures/reset-database');
@@ -10,25 +11,15 @@ const resetDatabase = require('test/data/fixtures/reset-database');
 const BAD_INPUT = 'BAD_INPUT';
 
 describe('Postgres Crud', () => {
-  const crud = Crud(engine, model);
-
-  beforeEach(done => {
-    resetDatabase(['persons'])
-      .then(() => done())
-      .catch(done);
-  });
-
   describe('Find One', () => {
-    beforeEach(done => {
-      loadFixtures({persons: crud})
+    let crud;
+
+    before(done => {
+      crud = Crud(engine, model);
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
-    });
-
-    it('should return promise', () => {
-      const actual = crud.findOne({where: {name: 'Jon'}}).constructor.name;
-      const expected = 'Promise';
-      expect(actual).to.be.equal(expected);
     });
 
     it('should return error if unknown fields are sent', done => {
@@ -39,15 +30,13 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
+      crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
         .then(() => done())
         .catch(done);
     });
 
     it('should return find correct record', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.findOne({where: {name: 'Jon'}}))
+      crud.findOne({where: {name: 'Jon'}})
         .then(person => {
           const expected = 'Jon';
           const actual = person.name;
@@ -58,8 +47,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should find no record', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.findOne({where: {name: 'Jon', lastName: 'Nope'}}))
+      crud.findOne({where: {name: 'Jon', lastName: 'Nope'}})
         .then(person => expect(person).not.to.exist)
         .then(() => done())
         .catch(done);
@@ -67,8 +55,13 @@ describe('Postgres Crud', () => {
   });
 
   describe('Find', () => {
+    let crud;
+
     beforeEach(done => {
-      loadFixtures({persons: crud})
+      crud = Crud(engine, model);
+
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -86,8 +79,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should find no record', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.find({where: {name: 'Jon', lastName: 'Nope'}}))
+      crud.find({where: {name: 'Jon', lastName: 'Nope'}})
         .then(persons => expect(persons.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
@@ -101,16 +93,19 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
+      crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
         .then(() => done())
         .catch(done);
     });
   });
 
   describe('Count', () => {
+    let crud;
+
     beforeEach(done => {
-      loadFixtures({persons: crud})
+      crud = Crud(engine, model);
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -124,8 +119,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should return 0', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.count({where: {name: 'Jon', lastName: 'Nope'}}))
+      crud.count({where: {name: 'Jon', lastName: 'Nope'}})
         .then(count => expect(count).to.be.equal(0))
         .then(() => done())
         .catch(done);
@@ -139,54 +133,117 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.count({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
+      crud.count({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
         .then(() => done())
         .catch(done);
     });
   });
 
   describe('Insert', () => {
-    it('should return promise', () => {
-      const actual = crud.insert({name: 'Jon'}).constructor.name;
-      const expected = 'Promise';
-      expect(actual).to.be.equal(expected);
+    describe('Simple Model', () => {
+      let crud;
+
+      beforeEach(done => {
+        crud = Crud(engine, model);
+        resetDatabase(['persons'])
+          .then(() => done());
+      });
+
+      it('should return promise', () => {
+        const actual = crud.insert({name: 'Jon'}).constructor.name;
+        const expected = 'Promise';
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should return error when trying to insert unkown field', done => {
+        crud.insert({unknown: 'Field'})
+          .then(unexpectedData)
+          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should create record', done => {
+        crud.insert({id: 999, name: 'Jon'})
+          .then(person => {
+            const expected = 'Jon';
+            const actual = person.name;
+            expect(actual).to.be.equal(expected);
+            return person;
+          })
+          .then(person => crud.findOne({where: {id: person.id}}))
+          .then(person => {
+            const expected = 'Jon';
+            const actual = person.name;
+            expect(actual).to.be.equal(expected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
     });
 
-    it('should return error when trying to insert unkown field', done => {
-      crud.insert({unknown: 'Field'})
-        .then(unexpectedData)
-        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
-        .then(() => done())
-        .catch(done);
-    });
+    describe('Extended Model', () => {
+      let crud;
 
-    it('should create record', done => {
-      crud.insert({id: 999, name: 'Jon'})
-        .then(person => {
-          const expected = 'Jon';
-          const actual = person.name;
-          expect(actual).to.be.equal(expected);
-          return person;
-        })
-        .then(person => crud.findOne({where: {id: person.id}}))
-        .then(person => {
-          const expected = 'Jon';
-          const actual = person.name;
-          expect(actual).to.be.equal(expected);
-        })
-        .then(() => done())
-        .catch(done);
+      beforeEach((done) => {
+        const extended = defineModel({
+          collection: 'employees',
+          engine,
+          definition: {
+            personId: types.INTEGER,
+            schedule: types.STRING,
+            entryDate: types.DATE,
+            ssn: types.STRING
+          }
+        });
+        extended.extend(model, 'personId');
+
+        crud = Crud(engine, extended);
+        resetDatabase(['persons', 'employees'])
+          .then(() => loadFixtures({fullEmployee: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('returns error with unkown field in parent model', done => {
+        crud.insert({unknown: 'Field'})
+          .then(unexpectedData)
+          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('creates records in child and parent models, returns combination', done => {
+        crud.insert({id: 999, name: 'Jon', ssn: '3412312'})
+          .then(person => {
+            const expected = 'Jon';
+            const actual = person.name;
+            expect(actual).to.be.equal(expected);
+            return person;
+          })
+          .then(person => crud.findOne({where: {id: person.id}}))
+          .then(person => {
+            const expected = 'Jon';
+            const actual = person.name;
+            expect(actual).to.be.equal(expected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
     });
   });
 
   describe('Upsert', () => {
+    let crud;
+
     before(() => {
       model.validatesUniquenessOf('rating');
     });
 
     beforeEach(done => {
-      loadFixtures({persons: crud})
+      crud = Crud(engine, model);
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -242,8 +299,12 @@ describe('Postgres Crud', () => {
   });
 
   describe('Update', () => {
+    let crud;
+
     beforeEach(done => {
-      loadFixtures({persons: crud})
+      crud = Crud(engine, model);
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -314,8 +375,12 @@ describe('Postgres Crud', () => {
   });
 
   describe('Remove', () => {
+    let crud;
+
     beforeEach(done => {
-      loadFixtures({persons: crud})
+      crud = Crud(engine, model);
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });

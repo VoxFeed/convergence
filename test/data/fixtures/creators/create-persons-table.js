@@ -7,7 +7,7 @@ module.exports = client => {
     age integer,
     tracked boolean,
     job jsonb,
-    rating decimal,
+    rating decimal UNIQUE,
     created_at timestamp with time zone DEFAULT current_timestamp
   );`;
 

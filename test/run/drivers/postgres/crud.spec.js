@@ -180,6 +180,67 @@ describe('Postgres Crud', () => {
     });
   });
 
+  describe('Upsert', () => {
+    before(() => {
+      model.validatesUniquenessOf('rating');
+    });
+
+    beforeEach(done => {
+      loadFixtures({persons: crud})
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('returns promise', () => {
+      const data = {name: 'Jon'};
+      const actual = crud.upsert(data).constructor.name;
+      const expected = 'Promise';
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('inserts when no conflict', done => {
+      const data = {
+        id: 7,
+        name: 'Gus',
+        lastName: 'Ortiz',
+        rating: 10,
+        job: {title: 'Programmer'}
+      };
+      const expectCorrectPerson = person => {
+        expect(person.name).to.be.equal('Gus');
+        expect(person.lastName).to.be.equal('Ortiz');
+        expect(person.id).to.be.equal(7);
+      };
+      crud.upsert(data)
+        .then(expectCorrectPerson)
+        .then(() => model.findOne({where: {id: 7}}))
+        .then(expectCorrectPerson)
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('updates record when there is conflict', done => {
+      const data = {
+        id: 7,
+        name: 'Gus',
+        lastName: 'Ortiz',
+        rating: 1,
+        job: {title: 'Programmer'}
+      };
+      const expectCorrectPerson = person => {
+        expect(person.name).to.be.equal('Gus');
+        expect(person.lastName).to.be.equal('Ortiz');
+        expect(person.id).to.be.equal(1);
+      };
+      crud.upsert(data)
+        .then(expectCorrectPerson)
+        .then(() => model.findOne({where: {id: 1}}))
+        .then(expectCorrectPerson)
+        .then(() => done())
+        .catch(done);
+    });
+  });
+
   describe('Update', () => {
     beforeEach(done => {
       loadFixtures({persons: crud})

@@ -12,4 +12,8 @@ const definition = {
   createdAt: types.DATE
 };
 
-module.exports = engine => defineModel(Object.assign({}, {collection, definition, engine}));
+module.exports = engine => {
+  const model = defineModel(Object.assign({}, {collection, definition, engine}));
+  model.validatesUniquenessOf('id');
+  return model;
+};

@@ -310,6 +310,24 @@ describe('Memory Crud', () => {
         .then(() => done())
         .catch(done);
     });
+
+    it('should update extended model', done => {
+      const query = {where: {id: 1}};
+      const data = {'job.companyName': 'new value'};
+      const expectUpdate = person => {
+        expect(person.job).to.have.property('companyName', 'new value');
+        return person;
+      };
+
+      employeesCrud.update(query, data)
+        .then(expectUpdate)
+        .then(person => personsCrud.findOne({where: {id: person.id}}))
+        .then(expectUpdate)
+        .then(person => employeesCrud.findOne({where: {id: person.id}}))
+        .then(expectUpdate)
+        .then(() => done())
+        .catch(done);
+    });
   });
 
   describe('Remove', () => {
@@ -353,7 +371,7 @@ describe('Memory Crud', () => {
         .catch(done);
     });
 
-    it('should create correct records for single json inner query', done => {
+    it('should remove correct records for single json inner query', done => {
       const query = {where: {'job.title': 'Programmer'}};
       personsCrud.remove(query)
         .then(persons => {
@@ -363,6 +381,21 @@ describe('Memory Crud', () => {
         })
         .then(() => personsCrud.find(query))
         .then(persons => expect(persons.length).to.be.equal(0))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should remoe both records for extended model', done => {
+      const query = {where: {id: 2}};
+      employeesCrud.remove(query)
+        .then(employees => {
+          expect(employees.length).to.be.equal(1);
+          expect(employees[0].id).to.be.equal(2);
+        })
+        .then(() => personsCrud.find(query))
+        .then(persons => expect(persons.length).to.be.equal(0))
+        .then(() => employeesCrud.find(query))
+        .then(employees => expect(employees.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
     });

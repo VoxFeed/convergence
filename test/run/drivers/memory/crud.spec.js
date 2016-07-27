@@ -262,6 +262,24 @@ describe('Memory Crud', () => {
         .catch(done);
     });
 
+    it('should update multiple records', done => {
+      const query = {where: {'job.title': 'Programmer'}};
+      const data = {job: {companyName: 'new value', title: 'Programmer'}};
+      const expectUpdate = persons => {
+        return persons.map(person => {
+          expect(person.job).to.have.property('companyName', 'new value');
+          return person;
+        });
+      };
+
+      personsCrud.update(query, data)
+        .then(expectUpdate)
+        .then(persons => personsCrud.find(query))
+        .then(expectUpdate)
+        .then(() => done())
+        .catch(done);
+    });
+
     it('should return error when trying to update with unkown field in data', done => {
       const query = {where: {name: 'Jon'}};
       const data = {unknown: 'Field'};
@@ -323,6 +341,94 @@ describe('Memory Crud', () => {
         .then(expectUpdate)
         .then(person => personsCrud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
+        .then(person => employeesCrud.findOne({where: {id: person.id}}))
+        .then(expectUpdate)
+        .then(() => done())
+        .catch(done);
+    });
+  });
+
+  describe('Upsert', () => {
+    it('should update single existing record', done => {
+      const person = Object.assign({}, personsFixtures[0]);
+      person.lastName = 'Not Doe';
+      const expectUpsert = person => {
+        const expected = 'Not Doe';
+        const actual = person.lastName;
+        expect(actual).to.be.equal(expected);
+        return person;
+      };
+
+      personsCrud.upsert(person)
+        .then(expectUpsert)
+        .then(person => personsCrud.findOne({where: {id: person.id}}))
+        .then(expectUpsert)
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return error when trying to upsert with unkown field in data', done => {
+      const person = Object.assign({}, personsFixtures[0]);
+      person.unknown = 'Field';
+      personsCrud.upsert(person)
+        .then(() => done('unexpected data'))
+        .catch(err => {
+          expect(err.name).to.be.equal('BAD_INPUT');
+          done();
+        });
+    });
+
+    it('should insert record when it does not exists', done => {
+      const employeeData = {
+        id: 8888,
+        name: 'Jane',
+        personId: 8888,
+        lastName: 'Doe',
+        age: 25,
+        schedule: '09:30 - 18:30',
+        entryDate: new Date('2016-07-26T00:00:00.000Z'),
+        ssn: '465154654561'
+      };
+      const query = {where: {id: 8888}};
+
+      employeesCrud.findOne(query)
+        .then(employee => {
+          expect(employee).to.be.undefined;
+          return employeesCrud.upsert(employeeData);
+        })
+        .then(employee => personsCrud.findOne(query))
+        .then(person => {
+          expect(person.id).to.be.equal(8888);
+          expect(person.name).to.be.equal('Jane');
+          expect(person.age).to.be.equal(25);
+          return employeesCrud.findOne({where: {personId: person.id}});
+        })
+        .then(employee => {
+          expect(employee.personId).to.be.equal(8888);
+          expect(employee.schedule).to.be.equal('09:30 - 18:30');
+          expect(employee.ssn).to.be.equal('465154654561');
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should upsert extended model', done => {
+      const employee = Object.assign({}, employeesFixtures[0]);
+      employee.schedule = '10:00 - 14:00';
+      employee.lastName = 'Dane';
+      const expectUpdate = employee => {
+        expect(employee).to.have.property('schedule', '10:00 - 14:00');
+        expect(employee).to.have.property('lastName', 'Dane');
+        return employee;
+      };
+
+      employeesCrud.upsert(employee)
+        .then(expectUpdate)
+        .then(person => personsCrud.findOne({where: {id: person.id}}))
+        .then(person => {
+          expect(person).to.have.property('lastName', 'Dane');
+          return person;
+        })
         .then(person => employeesCrud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
         .then(() => done())

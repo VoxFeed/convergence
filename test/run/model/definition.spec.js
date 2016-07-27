@@ -144,7 +144,7 @@ describe('Model', () => {
       const model = buildModel(engine);
       const uniques = model.validatesUniquenessOf('nope', 'unkwown');
       expect(uniques.length).to.be.equal(0);
-      expect(model.getUniqueIndexes().length).to.be.equal(0);
+      expect(model.getUniqueIndexes().length).to.be.equal(1);
     });
 
     it('should ingore repeated fields', () => {
@@ -153,7 +153,7 @@ describe('Model', () => {
       expect(uniques.length).to.be.equal(2);
       expect(uniques).to.include('name');
       expect(uniques).to.include('age');
-      expect(model.getUniqueIndexes().length).to.be.equal(2);
+      expect(model.getUniqueIndexes().length).to.be.equal(3);
       expect(model.getUniqueIndexes()).to.include('name');
       expect(model.getUniqueIndexes()).to.include('age');
     });

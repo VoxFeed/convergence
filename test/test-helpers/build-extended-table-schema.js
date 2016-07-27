@@ -2,12 +2,10 @@ const {types, defineModel} = require('lib/model/definition');
 
 const collection = 'employees';
 const definition = {
-  id: types.INTEGER,
   personId: types.INTEGER,
   schedule: types.STRING,
   entryDate: types.DATE,
-  ssn: types.STRING,
-  createdAt: types.DATE
+  ssn: types.STRING
 };
 
 module.exports = (engine, PersonModel) => {

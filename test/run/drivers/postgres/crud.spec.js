@@ -270,7 +270,9 @@ describe('Postgres Crud', () => {
             expect(actual).to.be.equal(expected);
             return person;
           })
-          .then(person => crud.findOne({where: {id: person.id}}))
+          .then(person => {
+            return crud.findOne({where: {id: person.id}});
+          })
           .then(person => {
             const expected = 'Jon';
             const actual = person.name;

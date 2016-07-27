@@ -341,7 +341,6 @@ describe('Postgres Transpiler', () => {
         collection: 'employees',
         engine,
         definition: {
-          id: types.INTEGER,
           personId: types.INTEGER,
           schedule: types.STRING,
           entryDate: types.DATE,
@@ -353,49 +352,44 @@ describe('Postgres Transpiler', () => {
     });
 
     it('creates sql with one field in each table', () => {
-      const data = {name: 'Jon', schedule: '9:00 - 6:00'};
+      const data = {id: 1, name: 'Jon', schedule: '9:00 - 6:00'};
       const expected = '' +
       'WITH NEW_PARENT_RECORD as (' +
-        'INSERT INTO persons (name) VALUES (\'Jon\') RETURNING id) ' +
+        'INSERT INTO persons (id, name) VALUES (1, \'Jon\') RETURNING id) ' +
       'INSERT INTO employees (schedule, person_id) VALUES ' +
         '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON person_id=id';
+      'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=1';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });
 
     it('creates sql with fields in just the parent table', () => {
-      const data = {name: 'Jon', lastName: 'Doe'};
+      const data = {id: 1, name: 'Jon', lastName: 'Doe'};
       const expected = '' +
       'WITH NEW_PARENT_RECORD as (' +
-        'INSERT INTO persons (name, last_name) VALUES (\'Jon\', \'Doe\') RETURNING id) ' +
+        'INSERT INTO persons (id, name, last_name) VALUES (1, \'Jon\', \'Doe\') RETURNING id) ' +
       'INSERT INTO employees (person_id) VALUES ' +
         '((SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON person_id=id';
+      'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=1';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });
 
     it('creates sql with fields in just the child table', () => {
-      const data = {schedule: '9:00 - 6:00'};
+      const data = {id: 1, schedule: '9:00 - 6:00'};
       const expected = '' +
       'WITH NEW_PARENT_RECORD as (' +
-        'INSERT INTO persons () VALUES () RETURNING id) ' +
+        'INSERT INTO persons (id) VALUES (1) RETURNING id) ' +
       'INSERT INTO employees (schedule, person_id) VALUES ' +
         '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON person_id=id';
+      'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=1';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });
 
-    it('should create sql with no fields', () => {
+    it('should return empty string if no data is sent', () => {
       const data = {};
-      const expected = '' +
-      'WITH NEW_PARENT_RECORD as (' +
-        'INSERT INTO persons () VALUES () RETURNING id) ' +
-      'INSERT INTO employees (person_id) VALUES ' +
-        '((SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON person_id=id';
+      const expected = '';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });

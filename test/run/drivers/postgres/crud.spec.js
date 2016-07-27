@@ -12,45 +12,94 @@ const BAD_INPUT = 'BAD_INPUT';
 
 describe('Postgres Crud', () => {
   describe('Find One', () => {
-    let crud;
+    describe('Simple Model', () => {
+      let crud;
 
-    before(done => {
-      crud = Crud(engine, model);
-      resetDatabase(['persons'])
-        .then(() => loadFixtures({persons: crud}))
-        .then(() => done())
-        .catch(done);
+      before(done => {
+        crud = Crud(engine, model);
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return error if unknown fields are sent', done => {
+        crud.findOne({where: {unknown: 'field'}})
+          .then(data => unexpectedData(data || {}))
+          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+          .then(() => done());
+      });
+
+      it('should not return error if operators are sent', done => {
+        crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return find correct record', done => {
+        crud.findOne({where: {name: 'Jon'}})
+          .then(person => {
+            const expected = 'Jon';
+            const actual = person.name;
+            expect(actual).to.be.equal(expected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should find no record', done => {
+        crud.findOne({where: {name: 'Jon', lastName: 'Nope'}})
+          .then(person => expect(person).not.to.exist)
+          .then(() => done())
+          .catch(done);
+      });
     });
 
-    it('should return error if unknown fields are sent', done => {
-      crud.findOne({where: {unknown: 'field'}})
-        .then(data => unexpectedData(data || {}))
-        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
-        .then(() => done());
-    });
+    describe('Extended Model', () => {
+      let crud;
+      beforeEach((done) => {
+        const extended = defineModel({
+          collection: 'employees',
+          engine,
+          definition: {
+            personId: types.INTEGER,
+            schedule: types.STRING,
+            entryDate: types.DATE,
+            ssn: types.STRING
+          }
+        });
+        extended.extend(model, 'personId');
 
-    it('should not return error if operators are sent', done => {
-      crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
-        .then(() => done())
-        .catch(done);
-    });
+        crud = Crud(engine, extended);
+        resetDatabase(['persons', 'employees'])
+          .then(() => loadFixtures({fullEmployee: crud}))
+          .then(() => done())
+          .catch(done);
+      });
 
-    it('should return find correct record', done => {
-      crud.findOne({where: {name: 'Jon'}})
-        .then(person => {
-          const expected = 'Jon';
-          const actual = person.name;
-          expect(actual).to.be.equal(expected);
-        })
-        .then(() => done())
-        .catch(done);
-    });
+      it('returns error with unkown field', done => {
+        crud.insert({unknown: 'Field'})
+          .then(unexpectedData)
+          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+          .then(() => done())
+          .catch(done);
+      });
 
-    it('should find no record', done => {
-      crud.findOne({where: {name: 'Jon', lastName: 'Nope'}})
-        .then(person => expect(person).not.to.exist)
-        .then(() => done())
-        .catch(done);
+      it('should return find correct record', done => {
+        crud.findOne({where: {name: 'Jon', ssn: '23534564356'}})
+          .then(employee => {
+            expect(employee.name).to.be.equal('Jon');
+            expect(employee.ssn).to.be.equal('23534564356');
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should not return error if operators are sent', done => {
+        crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+          .then(() => done())
+          .catch(done);
+      });
     });
   });
 
@@ -205,7 +254,7 @@ describe('Postgres Crud', () => {
           .catch(done);
       });
 
-      it('returns error with unkown field in parent model', done => {
+      it('returns error with unkown field', done => {
         crud.insert({unknown: 'Field'})
           .then(unexpectedData)
           .catch(err => expect(err.name).to.be.equal(BAD_INPUT))

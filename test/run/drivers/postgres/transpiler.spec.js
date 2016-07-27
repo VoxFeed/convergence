@@ -80,7 +80,7 @@ describe('Postgres Transpiler', () => {
       const actual = transpiler.select(uql);
       const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\' AND ' +
         'persons.last_name=\'Doe\' AND persons.age=23 AND ' +
-       `persons.created_at >= \'${startDate}\' AND persons.created_at < '${endDate}'`;
+        `persons.created_at >= \'${startDate}\' AND persons.created_at < '${endDate}'`;
       expect(actual).to.be.equal(expected);
     });
 
@@ -160,7 +160,7 @@ describe('Postgres Transpiler', () => {
     it('creates sql with one field in each table', () => {
       const query = {where: {name: 'Jon', ssn: '23534564356'}};
       const expected = '' +
-        'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id ' +
         'WHERE persons.name=\'Jon\' AND employees.ssn=\'23534564356\'';
       const actual = transpiler.select(query);
       expect(actual).to.be.equal(expected);
@@ -169,8 +169,17 @@ describe('Postgres Transpiler', () => {
     it('creates sql with one field in one table', () => {
       const query = {where: {id: 1}};
       const expected = '' +
-        'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id ' +
         'WHERE persons.id=1';
+      const actual = transpiler.select(query);
+      expect(actual).to.be.equal(expected);
+    });
+
+    it('creates sql with explicit operator', () => {
+      const query = {where: {or: [{name: 'Jon'}, {ssn: '23534564356'}]}};
+      const expected = '' +
+        'SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' OR employees.ssn=\'23534564356\'';
       const actual = transpiler.select(query);
       expect(actual).to.be.equal(expected);
     });
@@ -350,7 +359,7 @@ describe('Postgres Transpiler', () => {
         'INSERT INTO persons (name) VALUES (\'Jon\') RETURNING id) ' +
       'INSERT INTO employees (schedule, person_id) VALUES ' +
         '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
+      'SELECT * FROM employees JOIN persons ON person_id=id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });
@@ -362,7 +371,7 @@ describe('Postgres Transpiler', () => {
         'INSERT INTO persons (name, last_name) VALUES (\'Jon\', \'Doe\') RETURNING id) ' +
       'INSERT INTO employees (person_id) VALUES ' +
         '((SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
+      'SELECT * FROM employees JOIN persons ON person_id=id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });
@@ -374,7 +383,7 @@ describe('Postgres Transpiler', () => {
         'INSERT INTO persons () VALUES () RETURNING id) ' +
       'INSERT INTO employees (schedule, person_id) VALUES ' +
         '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
+      'SELECT * FROM employees JOIN persons ON person_id=id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });
@@ -386,7 +395,7 @@ describe('Postgres Transpiler', () => {
         'INSERT INTO persons () VALUES () RETURNING id) ' +
       'INSERT INTO employees (person_id) VALUES ' +
         '((SELECT id FROM NEW_PARENT_RECORD)); ' +
-      'SELECT * FROM employees JOIN persons ON employees.person_id=persons.id';
+      'SELECT * FROM employees JOIN persons ON person_id=id';
       const actual = transpiler.insert(data);
       expect(actual).to.be.equal(expected);
     });

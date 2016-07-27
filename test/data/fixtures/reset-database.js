@@ -33,9 +33,7 @@ const dropTable = client => table => {
 
 const createTables = tables => db => {
   const {client} = db;
-  const creators = tables.map((table) => {
-    return selectCreator[table](client);
-  });
+  const creators = tables.map((table) => selectCreator[table](client));
   return Promise.all(creators)
     .then(() => client.end())
     .catch(err => {

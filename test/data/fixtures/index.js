@@ -1,13 +1,12 @@
 const {clone, flatten} = require('lodash');
-const resetDatabase = require('./reset-database');
 const fixtureSelector = {
-  persons: require('./persons')
+  persons: require('./persons'),
+  employees: require('./employees'),
+  fullEmployee: require('./full-employees')
 };
 
 const loadFixtures = cruds => {
-  const collections = Object.keys(cruds);
-  return resetDatabase(collections)
-    .then(() => seedValues(cruds));
+  return seedValues(cruds);
 };
 
 const seedValues = cruds => {

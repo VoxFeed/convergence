@@ -11,26 +11,15 @@ const resetDatabase = require('test/data/fixtures/reset-database');
 const BAD_INPUT = 'BAD_INPUT';
 
 describe('Postgres Crud', () => {
-  beforeEach(done => {
-    resetDatabase(['persons'])
-      .then(() => done())
-      .catch(done);
-  });
-
   describe('Find One', () => {
     let crud;
 
-    beforeEach(done => {
+    before(done => {
       crud = Crud(engine, model);
-      loadFixtures({persons: crud})
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
-    });
-
-    it('should return promise', () => {
-      const actual = crud.findOne({where: {name: 'Jon'}}).constructor.name;
-      const expected = 'Promise';
-      expect(actual).to.be.equal(expected);
     });
 
     it('should return error if unknown fields are sent', done => {
@@ -41,15 +30,13 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
+      crud.findOne({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
         .then(() => done())
         .catch(done);
     });
 
     it('should return find correct record', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.findOne({where: {name: 'Jon'}}))
+      crud.findOne({where: {name: 'Jon'}})
         .then(person => {
           const expected = 'Jon';
           const actual = person.name;
@@ -60,8 +47,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should find no record', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.findOne({where: {name: 'Jon', lastName: 'Nope'}}))
+      crud.findOne({where: {name: 'Jon', lastName: 'Nope'}})
         .then(person => expect(person).not.to.exist)
         .then(() => done())
         .catch(done);
@@ -73,7 +59,9 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       crud = Crud(engine, model);
-      loadFixtures({persons: crud})
+
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -91,8 +79,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should find no record', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.find({where: {name: 'Jon', lastName: 'Nope'}}))
+      crud.find({where: {name: 'Jon', lastName: 'Nope'}})
         .then(persons => expect(persons.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
@@ -106,8 +93,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
+      crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
         .then(() => done())
         .catch(done);
     });
@@ -118,7 +104,8 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       crud = Crud(engine, model);
-      loadFixtures({persons: crud})
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -132,8 +119,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should return 0', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.count({where: {name: 'Jon', lastName: 'Nope'}}))
+      crud.count({where: {name: 'Jon', lastName: 'Nope'}})
         .then(count => expect(count).to.be.equal(0))
         .then(() => done())
         .catch(done);
@@ -147,8 +133,7 @@ describe('Postgres Crud', () => {
     });
 
     it('should not return error if operators are sent', done => {
-      loadFixtures({persons: crud})
-        .then(() => crud.count({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}}))
+      crud.count({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
         .then(() => done())
         .catch(done);
     });
@@ -158,8 +143,10 @@ describe('Postgres Crud', () => {
     describe('Simple Model', () => {
       let crud;
 
-      beforeEach(() => {
+      beforeEach(done => {
         crud = Crud(engine, model);
+        resetDatabase(['persons'])
+          .then(() => done());
       });
 
       it('should return promise', () => {
@@ -198,7 +185,7 @@ describe('Postgres Crud', () => {
     describe('Extended Model', () => {
       let crud;
 
-      beforeEach(() => {
+      beforeEach((done) => {
         const extended = defineModel({
           collection: 'employees',
           engine,
@@ -212,6 +199,10 @@ describe('Postgres Crud', () => {
         extended.extend(model, 'personId');
 
         crud = Crud(engine, extended);
+        resetDatabase(['persons', 'employees'])
+          .then(() => loadFixtures({fullEmployee: crud}))
+          .then(() => done())
+          .catch(done);
       });
 
       it('returns error with unkown field in parent model', done => {
@@ -223,7 +214,7 @@ describe('Postgres Crud', () => {
       });
 
       it('creates records in child and parent models, returns combination', done => {
-        crud.insert({id: 999, name: 'Jon'})
+        crud.insert({id: 999, name: 'Jon', ssn: '3412312'})
           .then(person => {
             const expected = 'Jon';
             const actual = person.name;
@@ -251,7 +242,8 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       crud = Crud(engine, model);
-      loadFixtures({persons: crud})
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -311,7 +303,8 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       crud = Crud(engine, model);
-      loadFixtures({persons: crud})
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });
@@ -386,7 +379,8 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       crud = Crud(engine, model);
-      loadFixtures({persons: crud})
+      resetDatabase(['persons'])
+        .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
     });

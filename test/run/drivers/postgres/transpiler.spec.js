@@ -555,7 +555,8 @@ describe('Postgres Transpiler', () => {
         const expected = '' +
         'WITH PARENT_RECORD as (' +
           'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.name=\'Luis\' AND employees.ssn=\'124124\' RETURNING id) ' +
+          'WHERE persons.name=\'Luis\' AND employees.ssn=\'124124\' ' +
+          'AND persons.id=employees.person_id RETURNING id) ' +
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
@@ -571,7 +572,8 @@ describe('Postgres Transpiler', () => {
         const expected = '' +
         'WITH PARENT_RECORD as (' +
           'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.name=\'Luis\' AND persons.last_name=\'Argumedo\' RETURNING id) ' +
+          'WHERE persons.name=\'Luis\' AND persons.last_name=\'Argumedo\' ' +
+          'AND persons.id=employees.person_id RETURNING id) ' +
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
@@ -587,7 +589,8 @@ describe('Postgres Transpiler', () => {
         const expected = '' +
         'WITH PARENT_RECORD as (' +
           'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.name=\'Luis\' OR persons.last_name=\'Argumedo\' RETURNING id) ' +
+          'WHERE persons.name=\'Luis\' OR persons.last_name=\'Argumedo\' ' +
+          'AND persons.id=employees.person_id RETURNING id) ' +
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +

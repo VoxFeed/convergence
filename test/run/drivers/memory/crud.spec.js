@@ -1,6 +1,7 @@
 const isArray = require('lodash/isArray');
-const snakeobj = require('snakeobj');
 const isPlainObject = require('lodash/isPlainObject');
+const snakeobj = require('snakeobj');
+const uuid = require('uuid-v4');
 
 const {memory} = require('lib/engines');
 const Crud = require('lib/model/crud');
@@ -76,7 +77,12 @@ describe('Memory Crud', () => {
 
   describe('Find', () => {
     it('returns the correct records', (done) => {
-      const query = {where: {or: [{id: 1}, {id: 2}]}};
+      const query = {
+        where: { or: [
+          {id: personsFixtures[0].id},
+          {id: personsFixtures[2].id}
+        ]}
+      };
       personsCrud.find(query)
         .then((persons) => {
           const ids = persons.map(person => person.id);
@@ -130,9 +136,9 @@ describe('Memory Crud', () => {
 
   describe('Count', () => {
     it('should return matching count', (done) => {
-      const query = {where: {or: [{id: 1}, {id: 3}]}};
+      const query = {where: {'job.title': 'Programmer'}};
       personsCrud.count(query)
-        .then(count => expect(count).to.be.equal(2))
+        .then(count => expect(count).to.be.equal(4))
         .then(() => done())
         .catch(done);
     });
@@ -174,7 +180,7 @@ describe('Memory Crud', () => {
     });
 
     it('should create record', done => {
-      personsCrud.insert({id: 999, name: 'Jon'})
+      personsCrud.insert({id: uuid(), name: 'Jon'})
         .then(person => {
           const expected = 'Jon';
           const actual = person.name;
@@ -192,7 +198,7 @@ describe('Memory Crud', () => {
     });
 
     it('should create record', done => {
-      personsCrud.insert({id: 999, name: 'Jon'})
+      personsCrud.insert({id: uuid(), name: 'Jon'})
         .then(person => {
           const expected = 'Jon';
           const actual = person.name;
@@ -211,7 +217,7 @@ describe('Memory Crud', () => {
 
     it('should create record with extended model', done => {
       const data = {
-        id: 9999,
+        id: uuid(),
         name: 'Jane',
         lastName: 'Doe',
         age: 25,
@@ -245,7 +251,7 @@ describe('Memory Crud', () => {
 
   describe('Update', () => {
     it('should update single existing record', done => {
-      const query = {where: {id: 1}};
+      const query = {where: {id: personsFixtures[0].id}};
       const data = {lastName: 'Not Doe'};
       const expectUpdate = person => {
         const expected = 'Not Doe';
@@ -314,7 +320,7 @@ describe('Memory Crud', () => {
     });
 
     it('should update property in json field', done => {
-      const query = {where: {id: 1}};
+      const query = {where: {id: personsFixtures[0].id}};
       const data = {'job.companyName': 'new value'};
       const expectUpdate = person => {
         expect(person.job).to.have.property('companyName', 'new value');
@@ -330,7 +336,7 @@ describe('Memory Crud', () => {
     });
 
     it('should update extended model', done => {
-      const query = {where: {id: 1}};
+      const query = {where: {id: personsFixtures[0].id}};
       const data = {'job.companyName': 'new value'};
       const expectUpdate = person => {
         expect(person.job).to.have.property('companyName', 'new value');
@@ -379,17 +385,18 @@ describe('Memory Crud', () => {
     });
 
     it('should insert record when it does not exists', done => {
+      const personId = uuid();
       const employeeData = {
-        id: 8888,
+        id: personId,
         name: 'Jane',
-        personId: 8888,
+        personId: personId,
         lastName: 'Doe',
         age: 25,
         schedule: '09:30 - 18:30',
         entryDate: new Date('2016-07-26T00:00:00.000Z'),
         ssn: '465154654561'
       };
-      const query = {where: {id: 8888}};
+      const query = {where: {id: personId}};
 
       employeesCrud.findOne(query)
         .then(employee => {
@@ -398,13 +405,13 @@ describe('Memory Crud', () => {
         })
         .then(employee => personsCrud.findOne(query))
         .then(person => {
-          expect(person.id).to.be.equal(8888);
+          expect(person.id).to.be.equal(personId);
           expect(person.name).to.be.equal('Jane');
           expect(person.age).to.be.equal(25);
           return employeesCrud.findOne({where: {personId: person.id}});
         })
         .then(employee => {
-          expect(employee.personId).to.be.equal(8888);
+          expect(employee.personId).to.be.equal(personId);
           expect(employee.schedule).to.be.equal('09:30 - 18:30');
           expect(employee.ssn).to.be.equal('465154654561');
           done();
@@ -468,7 +475,8 @@ describe('Memory Crud', () => {
       personsCrud.remove(query)
         .then(persons => {
           expect(persons.length).to.be.equal(2);
-          expect(persons.map(p => p.id).sort().join()).to.be.equal([1, 3].join());
+          const expectedIds = [personsFixtures[0].id, personsFixtures[2].id].sort();
+          expect(persons.map(p => p.id).sort().join()).to.be.equal(expectedIds.join());
           return persons;
         })
         .then(() => personsCrud.find(query))
@@ -482,7 +490,12 @@ describe('Memory Crud', () => {
       personsCrud.remove(query)
         .then(persons => {
           expect(persons.length).to.be.equal(4);
-          expect(persons.map(p => p.id).sort().join()).to.be.equal([2, 4, 5, 6].join());
+          const expectedIds = [
+            personsFixtures[1].id,
+            personsFixtures[3].id,
+            personsFixtures[4].id,
+            personsFixtures[5].id].sort();
+          expect(persons.map(p => p.id).sort().join()).to.be.equal(expectedIds.join());
           return persons;
         })
         .then(() => personsCrud.find(query))
@@ -492,11 +505,11 @@ describe('Memory Crud', () => {
     });
 
     it('should remoe both records for extended model', done => {
-      const query = {where: {id: 2}};
+      const query = {where: {id: personsFixtures[0].id}};
       employeesCrud.remove(query)
         .then(employees => {
           expect(employees.length).to.be.equal(1);
-          expect(employees[0].id).to.be.equal(2);
+          expect(employees[0].id).to.be.equal(personsFixtures[0].id);
         })
         .then(() => personsCrud.find(query))
         .then(persons => expect(persons.length).to.be.equal(0))

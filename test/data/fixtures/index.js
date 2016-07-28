@@ -11,6 +11,7 @@ const loadFixtures = cruds => {
 
 const seedValues = cruds => {
   const seeds = Object.keys(cruds).map(collection => buildSeed(collection, cruds[collection]));
+
   return Promise.all(flatten(seeds))
     .catch(err => {
       console.error('Seeding failed', err);
@@ -20,6 +21,7 @@ const seedValues = cruds => {
 
 const buildSeed = (collection, crud) => {
   const fixtures = selectFixtures(collection);
+  console.log(fixtures)
   return fixtures.map(insertRecord(crud));
 };
 

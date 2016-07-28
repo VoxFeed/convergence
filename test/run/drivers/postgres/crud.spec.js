@@ -62,7 +62,7 @@ describe('Postgres Crud', () => {
           collection: 'employees',
           engine,
           definition: {
-            personId: types.INTEGER,
+            personId: types.FOREIGN_KEY,
             schedule: types.STRING,
             entryDate: types.DATE,
             ssn: types.STRING
@@ -116,10 +116,12 @@ describe('Postgres Crud', () => {
     });
 
     it('should return matching records', done => {
-      const query = {where: {or: [{id: 1}, {id: 3}]}};
+      const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+      const id3 = '97392189-482b-410f-9581-4f5032b18e96';
+      const query = {where: {or: [{id: id1}, {id: id3}]}};
       crud.find(query)
         .then(persons => {
-          const actual = [1, 3].join();
+          const actual = [id1, id3].join();
           const expected = persons.map(p => p.id).sort().join();
           expect(actual).to.be.equal(expected);
         })
@@ -160,7 +162,10 @@ describe('Postgres Crud', () => {
     });
 
     it('should return matching count', done => {
-      const query = {where: {or: [{id: 1}, {id: 3}]}};
+      const query = {where: {or: [
+        {id: '672ee20a-77a0-4670-ac19-17c73e588774'},
+        {id: '97392189-482b-410f-9581-4f5032b18e96'}
+      ]}};
       crud.count(query)
         .then(count => expect(count).to.be.equal(2))
         .then(() => done())
@@ -213,14 +218,15 @@ describe('Postgres Crud', () => {
       });
 
       it('should create record', done => {
-        crud.insert({id: 999, name: 'Jon'})
+        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+        crud.insert({id, name: 'Jon'})
           .then(person => {
             const expected = 'Jon';
             const actual = person.name;
             expect(actual).to.be.equal(expected);
             return person;
           })
-          .then(person => crud.findOne({where: {id: person.id}}))
+          .then(person => crud.findOne({where: {id}}))
           .then(person => {
             const expected = 'Jon';
             const actual = person.name;
@@ -239,7 +245,7 @@ describe('Postgres Crud', () => {
           collection: 'employees',
           engine,
           definition: {
-            personId: types.INTEGER,
+            personId: types.FOREIGN_KEY,
             schedule: types.STRING,
             entryDate: types.DATE,
             ssn: types.STRING
@@ -263,7 +269,8 @@ describe('Postgres Crud', () => {
       });
 
       it('creates records in child and parent models, returns combination', done => {
-        crud.insert({id: 999, name: 'Jon', ssn: '3412312'})
+        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+        crud.insert({id, name: 'Jon', ssn: '3412312'})
           .then(person => {
             const expected = 'Jon';
             const actual = person.name;
@@ -271,7 +278,7 @@ describe('Postgres Crud', () => {
             return person;
           })
           .then(person => {
-            return crud.findOne({where: {id: person.id}});
+            return crud.findOne({where: {id}});
           })
           .then(person => {
             const expected = 'Jon';
@@ -307,8 +314,9 @@ describe('Postgres Crud', () => {
     });
 
     it('inserts when no conflict', done => {
+      const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
       const data = {
-        id: 7,
+        id,
         name: 'Gus',
         lastName: 'Ortiz',
         rating: 10,
@@ -317,19 +325,21 @@ describe('Postgres Crud', () => {
       const expectCorrectPerson = person => {
         expect(person.name).to.be.equal('Gus');
         expect(person.lastName).to.be.equal('Ortiz');
-        expect(person.id).to.be.equal(7);
+        expect(person.id).to.be.equal(id);
       };
       crud.upsert(data)
         .then(expectCorrectPerson)
-        .then(() => model.findOne({where: {id: 7}}))
+        .then(() => model.findOne({where: {id}}))
         .then(expectCorrectPerson)
         .then(() => done())
         .catch(done);
     });
 
     it('updates record when there is conflict', done => {
+      const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+      const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
       const data = {
-        id: 7,
+        id,
         name: 'Gus',
         lastName: 'Ortiz',
         rating: 1,
@@ -338,11 +348,10 @@ describe('Postgres Crud', () => {
       const expectCorrectPerson = person => {
         expect(person.name).to.be.equal('Gus');
         expect(person.lastName).to.be.equal('Ortiz');
-        expect(person.id).to.be.equal(1);
       };
       crud.upsert(data)
         .then(expectCorrectPerson)
-        .then(() => model.findOne({where: {id: 1}}))
+        .then(() => model.findOne({where: {id: id1}}))
         .then(expectCorrectPerson)
         .then(() => done())
         .catch(done);
@@ -410,7 +419,7 @@ describe('Postgres Crud', () => {
       });
 
       it('should update property in json field', done => {
-        const query = {where: {id: 1}};
+        const query = {where: {id: '672ee20a-77a0-4670-ac19-17c73e588774'}};
         const data = {'job.companyName': 'new value'};
         const expectUpdate = person => {
           expect(person.job).to.have.property('companyName', 'new value');
@@ -434,7 +443,7 @@ describe('Postgres Crud', () => {
           collection: 'employees',
           engine,
           definition: {
-            personId: types.INTEGER,
+            personId: types.FOREIGN_KEY,
             schedule: types.STRING,
             entryDate: types.DATE,
             ssn: types.STRING
@@ -524,11 +533,14 @@ describe('Postgres Crud', () => {
     });
 
     it('should remove correct records with or operator', done => {
+      const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+      const id3 = '97392189-482b-410f-9581-4f5032b18e96';
       const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
       crud.remove(query)
         .then(persons => {
           expect(persons.length).to.be.equal(2);
-          expect(persons.map(p => p.id).sort().join()).to.be.equal([1, 3].join());
+          expect(persons.map(p => p.id).sort().join())
+            .to.be.equal([id1, id3].sort().join());
           return persons;
         })
         .then(() => crud.find(query))
@@ -542,7 +554,7 @@ describe('Postgres Crud', () => {
       crud.remove(query)
         .then(persons => {
           expect(persons.length).to.be.equal(4);
-          expect(persons.map(p => p.id).sort().join()).to.be.equal([2, 4, 5, 6].join());
+          expect(persons.map(p => p.rating).sort().join()).to.be.equal([2, 4, 5, 6].join());
           return persons;
         })
         .then(() => crud.find(query))

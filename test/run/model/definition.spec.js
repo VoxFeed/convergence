@@ -6,6 +6,8 @@ describe('Model', () => {
   describe('Types', () => {
     it('should have all needed types', () => {
       expect(types.UUID).to.be.equal('uuid');
+      expect(types.PRIMARY_KEY).to.be.equal('uuid');
+      expect(types.FOREIGN_KEY).to.be.equal('uuid');
       expect(types.STRING).to.be.equal('string');
       expect(types.TEXT).to.be.equal('text');
       expect(types.INTEGER).to.be.equal('integer');
@@ -91,7 +93,7 @@ describe('Model', () => {
     const model = require('test/test-helpers/build-single-table-schema')(engine);
 
     it('should get correct type for fields', () => {
-      expect(model.getFieldType('id')).to.be.equal('integer');
+      expect(model.getFieldType('id')).to.be.equal('uuid');
       expect(model.getFieldType('name')).to.be.equal('string');
       expect(model.getFieldType('last_name')).to.be.equal('string');
       expect(model.getFieldType('age')).to.be.equal('integer');
@@ -159,23 +161,45 @@ describe('Model', () => {
     });
   });
 
+  describe('setPrimaryKey', () => {
+    it('sets primary key', () => {
+      const model = require('test/test-helpers/build-single-table-schema')(engine);
+      const actual = model.setPrimaryKey('id');
+      const expected = {primaryKey: 'id'};
+      expect(actual).to.be.deep.equal(expected);
+    });
+
+    it('does not set primary key', () => {
+      const model = defineModel({
+        engine,
+        collection: 'bla',
+        definition: {
+          id: types.INTEGER,
+          name: types.STRING
+        }
+      });
+      const actual = model.setPrimaryKey('id');
+      expect(actual).not.to.exist ;
+    });
+  });
+
   describe('extend', () => {
     const PostModel = defineModel({
       collection: 'posts',
       engine,
       definition: {
-        id: types.INTEGER,
+        id: types.PRIMARY_KEY,
         externalId: types.STRING
       }
     });
 
-    it('accepts returns extended model object', () => {
+    it('returns extended model object', () => {
       const DetailedPostModel = defineModel({
         collection: 'detailed_posts',
         engine,
         definition: {
           content: types.TEXT,
-          postId: types.INTEGER
+          postId: types.FOREIGN_KEY
         }
       });
 
@@ -186,7 +210,7 @@ describe('Model', () => {
       expect(result.model).to.be.deep.equal(PostModel);
     });
 
-    it('returs undefined if foreign key is not a valid field', () => {
+    it('returs undefined if foreign key is not an existing field', () => {
       const DetailedPostModel = defineModel({
         collection: 'detailed_posts',
         engine,
@@ -195,6 +219,41 @@ describe('Model', () => {
         }
       });
       const result = DetailedPostModel.extend(PostModel, 'postId');
+      expect(result).not.to.exist;
+    });
+
+    it('returs undefined if foreign key is not a valid type', () => {
+      const DetailedPostModel = defineModel({
+        collection: 'detailed_posts',
+        engine,
+        definition: {
+          postId: types.INTEGER,
+          content: types.TEXT
+        }
+      });
+      const result = DetailedPostModel.extend(PostModel, 'postId');
+      expect(result).not.to.exist;
+    });
+
+    it('returs undefined if extended model does not have a primary key', () => {
+      const model = defineModel({
+        colleciton: 'posts',
+        engine,
+        definition: {
+          id: types.UUID,
+          externalId: types.STRING
+        }
+      });
+
+      const DetailedPostModel = defineModel({
+        collection: 'detailed_posts',
+        engine,
+        definition: {
+          postId: types.FOREIGN_KEY,
+          content: types.TEXT
+        }
+      });
+      const result = DetailedPostModel.extend(model, 'postId');
       expect(result).not.to.exist;
     });
 

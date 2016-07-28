@@ -21,7 +21,6 @@ const seedValues = cruds => {
 
 const buildSeed = (collection, crud) => {
   const fixtures = selectFixtures(collection);
-  console.log(fixtures)
   return fixtures.map(insertRecord(crud));
 };
 

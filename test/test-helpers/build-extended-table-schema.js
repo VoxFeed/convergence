@@ -2,7 +2,7 @@ const {types, defineModel} = require('lib/model/definition');
 
 const collection = 'employees';
 const definition = {
-  personId: types.INTEGER,
+  personId: types.FOREIGN_KEY,
   schedule: types.STRING,
   entryDate: types.DATE,
   ssn: types.STRING

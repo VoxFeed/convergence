@@ -11,6 +11,6 @@ const definition = {
 module.exports = (engine, PersonModel) => {
   const model = defineModel(Object.assign({}, {collection, definition, engine}));
   model.extend(PersonModel, 'personId');
-  model.validatesUniquenessOf('personId');
+  model.validatesUniquenessOf('ssn');
   return model;
 };

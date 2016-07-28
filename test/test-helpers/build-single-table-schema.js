@@ -14,6 +14,6 @@ const definition = {
 
 module.exports = engine => {
   const model = defineModel(Object.assign({}, {collection, definition, engine}));
-  model.validatesUniquenessOf('id');
+  model.validatesUniquenessOf('rating');
   return model;
 };

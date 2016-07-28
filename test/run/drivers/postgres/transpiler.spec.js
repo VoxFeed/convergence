@@ -400,56 +400,54 @@ describe('Postgres Transpiler', () => {
   });
 
   describe('Upsert', () => {
-    const {defineModel, types} = require('lib/model/definition');
-    let model;
+    describe('Single Model', () => {
+      const {defineModel, types} = require('lib/model/definition');
+      let model;
 
-    beforeEach(() => {
-      model = defineModel({
-        collection: 'persons',
-        definition: {
-          name: types.STRING,
-          lastName: types.STRING,
-          age: types.INTEGER,
-          job: types.JSON
-        },
-        engine
+      beforeEach(() => {
+        model = defineModel({
+          collection: 'persons',
+          definition: {
+            name: types.STRING,
+            lastName: types.STRING,
+            age: types.INTEGER,
+            job: types.JSON
+          },
+          engine
+        });
       });
-    });
 
-    it('creates upsert sql with no unqiue indexes', () => {
-      const {upsert} = PostgresTranspiler(model);
-      const data = {name: 'Jon'};
-      const query = {where: {name: 'Jon'}};
-      const expected = 'INSERT INTO persons (name) VALUES (\'Jon\') ' +
-      'ON CONFLICT DO NOTHING RETURNING *';
-      const actual = upsert(query, data);
-      expect(actual).to.be.equal(expected);
-    });
+      it('creates upsert sql with no unique indexes', () => {
+        const {upsert} = PostgresTranspiler(model);
+        const data = {name: 'Jon'};
+        const expected = 'INSERT INTO persons (name) VALUES (\'Jon\') RETURNING *';
+        const actual = upsert(data);
+        expect(actual).to.be.equal(expected);
+      });
 
-    it('creates upsert sql with one unique index', () => {
-      model.validatesUniquenessOf('age');
-      const {upsert} = PostgresTranspiler(model);
-      const data = {name: 'Jon', lastName: 'Doe'};
-      const query = {where: {name: 'Jon'}};
-      const expected = 'INSERT INTO persons (name, last_name) ' +
-        'VALUES (\'Jon\', \'Doe\') ON CONFLICT (age) DO UPDATE ' +
-        'SET name=\'Jon\', last_name=\'Doe\' WHERE persons.name=\'Jon\' ' +
-        'RETURNING *';
-      const actual = upsert(query, data);
-      expect(actual).to.be.equal(expected);
-    });
+      it('creates upsert sql with one unique index', () => {
+        model.validatesUniquenessOf('age');
+        const {upsert} = PostgresTranspiler(model);
+        const data = {name: 'Jon', age: 25};
+        const expected = 'INSERT INTO persons (name, age) ' +
+          'VALUES (\'Jon\', 25) ON CONFLICT (age) DO UPDATE ' +
+          'SET name=\'Jon\', age=25 WHERE persons.age=25 ' +
+          'RETURNING *';
+        const actual = upsert(data);
+        expect(actual).to.be.equal(expected);
+      });
 
-    it('creates upsert query with multiple unique indexes and json property', () => {
-      model.validatesUniquenessOf('last_name', 'age');
-      const {upsert} = PostgresTranspiler(model);
-      const data = {name: 'Jon'};
-      const query = {where: {'job.title': 'Programmer'}};
-      const expected = 'INSERT INTO persons (name) ' +
-        'VALUES (\'Jon\') ON CONFLICT (last_name, age) DO UPDATE ' +
-        'SET name=\'Jon\' WHERE persons.job->>\'title\'=\'Programmer\' ' +
-        'RETURNING *';
-      const actual = upsert(query, data);
-      expect(actual).to.be.equal(expected);
+      it('creates upsert query with multiple unique indexes and json property', () => {
+        model.validatesUniquenessOf('last_name', 'age');
+        const {upsert} = PostgresTranspiler(model);
+        const data = {name: 'Jon', last_name: 'Doe', age: 25};
+        const expected = 'INSERT INTO persons (name, last_name, age) ' +
+          'VALUES (\'Jon\', \'Doe\', 25) ON CONFLICT (last_name, age) DO UPDATE ' +
+          'SET name=\'Jon\', last_name=\'Doe\', age=25 ' +
+          'WHERE persons.last_name=\'Doe\' AND persons.age=25 RETURNING *';
+        const actual = upsert(data);
+        expect(actual).to.be.equal(expected);
+      });
     });
   });
 

@@ -16,5 +16,6 @@ module.exports = engine => {
   const model = defineModel(Object.assign({}, {collection, definition, engine}));
   model.setPrimaryKey('id');
   model.validatesUniquenessOf('rating');
+  model.setPrimaryKey('id');
   return model;
 };

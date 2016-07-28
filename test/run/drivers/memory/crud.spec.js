@@ -419,6 +419,39 @@ describe('Memory Crud', () => {
         .catch(done);
     });
 
+    it('should create new id when is not sent', done => {
+      const employeeData = {
+        name: 'Jane',
+        lastName: 'Doe',
+        age: 25,
+        rating: 7,
+        schedule: '09:30 - 18:30',
+        entryDate: new Date('2016-07-26T00:00:00.000Z'),
+        ssn: '465154654561'
+      };
+      const query = {where: {rating: 7}};
+
+      employeesCrud.findOne(query)
+        .then(employee => {
+          expect(employee).to.be.undefined;
+          return employeesCrud.upsert(employeeData);
+        })
+        .then(employee => personsCrud.findOne(query))
+        .then(person => {
+          expect(person.id).to.be.exist;
+          expect(person.name).to.be.equal('Jane');
+          expect(person.age).to.be.equal(25);
+          return employeesCrud.findOne({where: {personId: person.id}});
+        })
+        .then(employee => {
+          expect(employee.personId).to.be.exist;
+          expect(employee.schedule).to.be.equal('09:30 - 18:30');
+          expect(employee.ssn).to.be.equal('465154654561');
+          done();
+        })
+        .catch(done);
+    });
+
     it('should upsert extended model', done => {
       const employee = Object.assign({}, employeesFixtures[0]);
       employee.schedule = '10:00 - 14:00';

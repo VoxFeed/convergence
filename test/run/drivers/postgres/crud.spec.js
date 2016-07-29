@@ -496,71 +496,103 @@ describe('Postgres Crud', () => {
   });
 
   describe('Remove', () => {
-    let crud;
+    describe('Single Model', () => {
+      let crud;
 
-    beforeEach(done => {
-      crud = Crud(engine, model);
-      resetDatabase(['persons'])
-        .then(() => loadFixtures({persons: crud}))
-        .then(() => done())
-        .catch(done);
+      beforeEach(done => {
+        crud = Crud(engine, model);
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove all records if no query is sent', done => {
+        const query = {where: {}};
+
+        crud.remove(query)
+          .then(() => crud.find(query))
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove correct record with one field', done => {
+        const query = {where: {name: 'Jon'}};
+        crud.remove(query)
+          .then(person => crud.findOne(query))
+          .then(person => expect(person).not.to.exist)
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove correct records with or operator', done => {
+        const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
+        crud.remove(query)
+          .then(() => crud.find(query))
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should create correct records for single json inner query', done => {
+        const query = {where: {'job.title': 'Programmer'}};
+        crud.remove(query)
+          .then(() => crud.find(query))
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
     });
 
-    it('should remove all records if no query is sent', done => {
-      const query = {where: {}};
+    describe('Extended Model', () => {
+      let crud;
 
-      crud.remove(query)
-        .then(persons => expect(persons.length).to.be.equal(6))
-        .then(() => crud.find(query))
-        .then(persons => expect(persons.length).to.be.equal(0))
-        .then(() => done())
-        .catch(done);
-    });
+      beforeEach(done => {
+        const buildModel = require('test/test-helpers/build-extended-table-schema');
+        const extended = buildModel(engine, model);
 
-    it('should remove correct record with one field', done => {
-      const query = {where: {name: 'Jon'}};
-      crud.remove(query)
-        .then(persons => {
-          expect(persons.length).to.be.equal(1);
-          const person = persons.pop();
-          expect(person.name).to.be.equal('Jon');
-          return person;
-        })
-        .then(person => crud.findOne({where: {id: person.id}}))
-        .then(person => expect(person).not.to.exist)
-        .then(() => done())
-        .catch(done);
-    });
+        crud = Crud(engine, extended);
 
-    it('should remove correct records with or operator', done => {
-      const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
-      const id3 = '97392189-482b-410f-9581-4f5032b18e96';
-      const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
-      crud.remove(query)
-        .then(persons => {
-          expect(persons.length).to.be.equal(2);
-          expect(persons.map(p => p.id).sort().join())
-            .to.be.equal([id1, id3].sort().join());
-          return persons;
-        })
-        .then(() => crud.find(query))
-        .then(persons => expect(persons.length).to.be.equal(0))
-        .then(() => done())
-        .catch(done);
-    });
+        resetDatabase(['persons', 'employees'])
+          .then(() => loadFixtures({fullEmployee: crud}))
+          .then(() => done())
+          .catch(done);
+      });
 
-    it('should create correct records for single json inner query', done => {
-      const query = {where: {'job.title': 'Programmer'}};
-      crud.remove(query)
-        .then(persons => {
-          expect(persons.length).to.be.equal(4);
-          expect(persons.map(p => p.rating).sort().join()).to.be.equal([2, 4, 5, 6].join());
-          return persons;
-        })
-        .then(() => crud.find(query))
-        .then(persons => expect(persons.length).to.be.equal(0))
-        .then(() => done())
-        .catch(done);
+      it('removes both records with query in both tables', done => {
+        const query = {where: {name: 'Jon', ssn: '23534564356'}};
+        crud.find(query)
+          .then(employees => expect(employees.length).to.be.equal(1))
+          .then(() => crud.remove(query))
+          .then(() => crud.find(query))
+          .then(employees => expect(employees.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('removes both records with just the id', done => {
+        const id = 'f8769847-a272-42fc-a09a-1f27d5b58176';
+        const query = {where: {id}};
+        crud.find(query)
+          .then(employees => expect(employees.length).to.be.equal(1))
+          .then(() => crud.remove(query))
+          .then(() => crud.find(query))
+          .then(employees => expect(employees.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('removes all records with no query', done => {
+        const query = {where: {}};
+        crud.find(query)
+          .then(employees => expect(employees.length).to.be.equal(6))
+          .then(() => crud.remove(query))
+          .then(() => crud.find(query))
+          .then(employees => expect(employees.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
     });
   });
 });

@@ -601,56 +601,122 @@ describe('Postgres Transpiler', () => {
   });
 
   describe('Remove', () => {
-    let transpiler;
+    describe('Single Model', () => {
+      let transpiler;
 
-    beforeEach(() => {
-      transpiler = PostgresTranspiler(model);
+      beforeEach(() => {
+        transpiler = PostgresTranspiler(model);
+      });
+
+      it('should return correct sql if no where clause is sent', () => {
+        const uql = {};
+        const expected = 'DELETE FROM persons';
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with one field', () => {
+        const query = {where: {name: 'Jon'}};
+        const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\'';
+        const actual = transpiler.remove(query);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with many conditions', () => {
+        const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
+        const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' AND ' +
+          'persons.last_name=\'Doe\' AND persons.age=23 AND persons.rating=5.2';
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with bad values', () => {
+        const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
+        const expected = 'DELETE FROM persons WHERE persons.name=\'123\' AND ' +
+          'persons.last_name=null AND persons.age=null AND persons.rating=null';
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with or operator', () => {
+        const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+        const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' OR ' +
+         'persons.last_name=\'Doe\'';
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL for single json inner query', () => {
+        const uql = {where: {'job.title': 'Programmer'}};
+        const expected = 'DELETE FROM persons WHERE ' +
+          'persons.job->>\'title\'=\'Programmer\'';
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.equal(expected);
+      });
     });
 
-    it('should return correct sql if no where clause is sent', () => {
-      const uql = {};
-      const expected = 'DELETE FROM persons RETURNING *';
-      const actual = transpiler.remove(uql);
-      expect(actual).to.be.equal(expected);
-    });
+    describe('Extended Model', () => {
+      let transpiler;
 
-    it('should create correct SQL with one field', () => {
-      const query = {where: {name: 'Jon'}};
-      const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' RETURNING *';
-      const actual = transpiler.remove(query);
-      expect(actual).to.be.equal(expected);
-    });
+      beforeEach(() => {
+        const buildModel = require('test/test-helpers/build-extended-table-schema');
+        const extended = buildModel(engine, model);
+        transpiler = PostgresTranspiler(extended);
+      });
 
-    it('should create correct SQL with many conditions', () => {
-      const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
-      const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' AND ' +
-        'persons.last_name=\'Doe\' AND persons.age=23 AND persons.rating=5.2 RETURNING *';
-      const actual = transpiler.remove(uql);
-      expect(actual).to.be.equal(expected);
-    });
+      it('should return correct sql if no where clause is sent', () => {
+        const query = {};
+        const expected = '' +
+        'BEGIN;' +
+        'DELETE FROM employees;' +
+        'DELETE FROM persons;' +
+        'COMMIT;';
+        const actual = transpiler.remove(query);
+        expect(actual).to.be.equal(expected);
+      });
 
-    it('should create correct SQL with bad values', () => {
-      const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
-      const expected = 'DELETE FROM persons WHERE persons.name=\'123\' AND ' +
-        'persons.last_name=null AND persons.age=null AND persons.rating=null RETURNING *';
-      const actual = transpiler.remove(uql);
-      expect(actual).to.be.equal(expected);
-    });
+      it('returns correct sql when query has only primary key', () => {
+        const query = {where: {id: '1'}};
+        const expected = '' +
+        'BEGIN; ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\') ' +
+        'DELETE FROM employees WHERE employees.person_id IN (SELECT id FROM ids);' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\') ' +
+        'DELETE FROM persons WHERE persons.id IN (SELECT id FROM ids); ' +
+        'COMMIT;';
+        const actual = transpiler.remove(query);
+        expect(actual).to.be.equal(expected);
+      });
 
-    it('should create correct SQL with or operator', () => {
-      const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-      const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' OR ' +
-       'persons.last_name=\'Doe\' RETURNING *';
-      const actual = transpiler.remove(uql);
-      expect(actual).to.be.equal(expected);
-    });
+      it('returns correct sql when query has only query in parent table', () => {
+        const query = {where: {name: 'Jon', last_name: 'Doe'}};
+        const expected = '' +
+        'BEGIN; ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\') ' +
+        'DELETE FROM employees WHERE employees.person_id IN (SELECT id FROM ids);' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\') ' +
+        'DELETE FROM persons WHERE persons.id IN (SELECT id FROM ids); ' +
+        'COMMIT;';
+        const actual = transpiler.remove(query);
+        expect(actual).to.be.equal(expected);
+      });
 
-    it('should create correct SQL for single json inner query', () => {
-      const uql = {where: {'job.title': 'Programmer'}};
-      const expected = 'DELETE FROM persons WHERE ' +
-        'persons.job->>\'title\'=\'Programmer\' RETURNING *';
-      const actual = transpiler.remove(uql);
-      expect(actual).to.be.equal(expected);
+      it('returns correct sql when query has only query in both tables', () => {
+        const query = {where: {name: 'Jon', ssn: '123'}};
+        const expected = '' +
+        'BEGIN; ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' AND employees.ssn=\'123\') ' +
+        'DELETE FROM employees WHERE employees.person_id IN (SELECT id FROM ids);' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' AND employees.ssn=\'123\') ' +
+        'DELETE FROM persons WHERE persons.id IN (SELECT id FROM ids); ' +
+        'COMMIT;';
+        const actual = transpiler.remove(query);
+        expect(actual).to.be.equal(expected);
+      });
     });
   });
 });

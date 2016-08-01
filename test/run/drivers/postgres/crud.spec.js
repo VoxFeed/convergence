@@ -295,7 +295,7 @@ describe('Postgres Crud', () => {
     let crud;
 
     before(() => {
-      model.validatesUniquenessOf('rating');
+      model.unique({single: ['rating']});
     });
 
     beforeEach(done => {

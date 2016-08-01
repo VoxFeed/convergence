@@ -426,7 +426,7 @@ describe('Postgres Transpiler', () => {
       });
 
       it('creates upsert sql with one unique index', () => {
-        model.validatesUniquenessOf('age');
+        model.unique({single: ['age']});
         const {upsert} = PostgresTranspiler(model);
         const data = {name: 'Jon', age: 25};
         const expected = 'INSERT INTO persons (name, age) ' +
@@ -438,7 +438,7 @@ describe('Postgres Transpiler', () => {
       });
 
       it('creates upsert query with multiple unique indexes and json property', () => {
-        model.validatesUniquenessOf('last_name', 'age');
+        model.unique({single: ['last_name', 'age']});
         const {upsert} = PostgresTranspiler(model);
         const data = {name: 'Jon', last_name: 'Doe', age: 25};
         const expected = 'INSERT INTO persons (name, last_name, age) ' +

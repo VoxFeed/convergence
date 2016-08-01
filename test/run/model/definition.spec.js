@@ -108,56 +108,89 @@ describe('Model', () => {
     });
   });
 
-  describe('validatesUniquenessOf', () => {
+  describe('unique', () => {
     const buildModel = require('test/test-helpers/build-single-table-schema');
 
-    it('should add known field to list of unique indexes', () => {
-      const model = buildModel(engine);
-      model.validatesUniquenessOf('name');
-      expect(model.getUniqueIndexes()).to.include('name');
+    describe('single', () => {
+      it('should add known field to list of single unique indexes', () => {
+        const model = buildModel(engine);
+        model.unique({single: ['name']});
+        expect(model.getUniqueSingleIndexes()).to.include('name');
+      });
+
+      it('should add list of known field to list of single unique indexes', () => {
+        const model = buildModel(engine);
+        model.unique({single: ['name', 'age']});
+        expect(model.getUniqueSingleIndexes()).to.include('name');
+        expect(model.getUniqueSingleIndexes()).to.include('age');
+        expect(model.getUniqueSingleIndexes()).not.to.include('tracked');
+      });
+
+      it('should transform to snake case a field added to unique indexes', () => {
+        const model = buildModel(engine);
+        model.unique({single: ['lastName']});
+        expect(model.getUniqueSingleIndexes()).to.include('last_name');
+      });
+
+      it('should ignore unkwown fields', () => {
+        const model = buildModel(engine);
+        const uniques = model.unique({single: ['name', 'unkwown', 'lastName']});
+        expect(uniques).to.include('name');
+        expect(uniques).to.include('last_name');
+        expect(uniques).not.to.include('unkwown');
+        expect(model.getUniqueSingleIndexes()).to.include('name');
+        expect(model.getUniqueSingleIndexes()).to.include('last_name');
+        expect(model.getUniqueSingleIndexes()).not.to.include('unkwon');
+      });
+
+      it('should return empty array if all are unkwown fields', () => {
+        const model = buildModel(engine);
+        const uniques = model.unique({single: ['nope', 'unkwown']});
+        expect(uniques.length).to.be.equal(0);
+        expect(model.getUniqueSingleIndexes().length).to.be.equal(1);
+      });
+
+      it('should ingore repeated fields', () => {
+        const model = buildModel(engine);
+        const uniques = model.unique({single: ['name', 'age', 'name']});
+        expect(uniques.length).to.be.equal(2);
+        expect(uniques).to.include('name');
+        expect(uniques).to.include('age');
+        expect(model.getUniqueSingleIndexes().length).to.be.equal(3);
+        expect(model.getUniqueSingleIndexes()).to.include('name');
+        expect(model.getUniqueSingleIndexes()).to.include('age');
+      });
     });
 
-    it('should add list of known field to list of unique indexes', () => {
-      const model = buildModel(engine);
-      model.validatesUniquenessOf('name', 'age');
-      expect(model.getUniqueIndexes()).to.include('name');
-      expect(model.getUniqueIndexes()).to.include('age');
-      expect(model.getUniqueIndexes()).not.to.include('tracked');
-    });
+    describe('combined', () => {
+      it('should add known fields to list of combined unique indexes', () => {
+        const model = buildModel(engine);
+        model.unique({combined: ['name', 'rating']});
+        expect(model.getUniqueCombinedIndexes()).to.include('name');
+        expect(model.getUniqueCombinedIndexes()).to.include('rating');
+      });
 
-    it('should transform to snake case a field added to unique indexes', () => {
-      const model = buildModel(engine);
-      model.validatesUniquenessOf('lastName');
-      expect(model.getUniqueIndexes()).to.include('last_name');
-    });
+      it('should add unique known fields to existing list of combined unique indexes', () => {
+        const model = buildModel(engine);
+        model.unique({combined: ['name', 'rating']});
+        model.unique({combined: ['last_name']});
+        expect(model.getUniqueCombinedIndexes()).to.include('name');
+        expect(model.getUniqueCombinedIndexes()).to.include('rating');
+        expect(model.getUniqueCombinedIndexes()).to.include('last_name');
+      });
 
-    it('should ignore unkwown fields', () => {
-      const model = buildModel(engine);
-      const uniques = model.validatesUniquenessOf('name', 'unkwown', 'lastName');
-      expect(uniques).to.include('name');
-      expect(uniques).to.include('last_name');
-      expect(uniques).not.to.include('unkwown');
-      expect(model.getUniqueIndexes()).to.include('name');
-      expect(model.getUniqueIndexes()).to.include('last_name');
-      expect(model.getUniqueIndexes()).not.to.include('unkwon');
-    });
-
-    it('should return empty array if all are unkwown fields', () => {
-      const model = buildModel(engine);
-      const uniques = model.validatesUniquenessOf('nope', 'unkwown');
-      expect(uniques.length).to.be.equal(0);
-      expect(model.getUniqueIndexes().length).to.be.equal(1);
-    });
-
-    it('should ingore repeated fields', () => {
-      const model = buildModel(engine);
-      const uniques = model.validatesUniquenessOf('name', 'age', 'name');
-      expect(uniques.length).to.be.equal(2);
-      expect(uniques).to.include('name');
-      expect(uniques).to.include('age');
-      expect(model.getUniqueIndexes().length).to.be.equal(3);
-      expect(model.getUniqueIndexes()).to.include('name');
-      expect(model.getUniqueIndexes()).to.include('age');
+      it('should ingore repeated fields', () => {
+        const model = buildModel(engine);
+        const uniques = model.unique({combined: ['name', 'age', 'name', 'rating']});
+        expect(uniques.length).to.be.equal(3);
+        expect(uniques).to.include('name');
+        expect(uniques).to.include('age');
+        expect(uniques).to.include('rating');
+        expect(model.getUniqueCombinedIndexes().length).to.be.equal(3);
+        expect(model.getUniqueCombinedIndexes()).to.include('name');
+        expect(model.getUniqueCombinedIndexes()).to.include('age');
+        expect(model.getUniqueCombinedIndexes()).to.include('rating');
+      });
     });
   });
 

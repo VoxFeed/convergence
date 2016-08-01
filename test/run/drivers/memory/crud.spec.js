@@ -5,6 +5,7 @@ const uuid = require('uuid-v4');
 
 const {memory} = require('lib/engines');
 const Crud = require('lib/model/crud');
+const {types, defineModel} = require('lib/model/definition');
 
 const personsFixtures = require('test/data/fixtures/persons');
 const employeesFixtures = require('test/data/fixtures/employees');
@@ -471,6 +472,55 @@ describe('Memory Crud', () => {
         })
         .then(person => employeesCrud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should upsert by primary Key when unique indexes are not defined', done => {
+      const collection = 'new_model';
+      const definition = {
+        id: types.PRIMARY_KEY,
+        name: types.STRING
+      };
+      const recordId = uuid();
+      const newEngine = memory({'new_model': [{id: recordId, name: 'Test'}]});
+      const newModel = defineModel({collection, definition, engine: newEngine});
+      newModel.setPrimaryKey('id');
+      const newModelCrud = Crud(newEngine, newModel);
+
+      const expectUpsert = (record) => {
+        expect(record).to.have.property('name', 'Jon');
+        return record;
+      };
+
+      newModelCrud.upsert({id: recordId, name: 'Jon'})
+        .then(expectUpsert)
+        .then(record => newModelCrud.findOne({where: {id: record.id}}))
+        .then(expectUpsert)
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should insert when unique index  and primary key are not defined', done => {
+      const collection = 'new_model';
+      const definition = {
+        id: types.PRIMARY_KEY,
+        name: types.STRING
+      };
+      const recordId = uuid();
+      const newEngine = memory({'new_model': [{id: recordId, name: 'Test'}]});
+      const newModel = defineModel({collection, definition, engine: newEngine});
+      const newModelCrud = Crud(newEngine, newModel);
+
+      const expectUpsert = (record) => {
+        expect(record).to.have.property('id', recordId);
+        return record;
+      };
+
+      newModelCrud.upsert({id: recordId, name: 'Jon'})
+        .then(expectUpsert)
+        .then(record => newModelCrud.find({where: {id: record.id}}))
+        .then(records => records.map(expectUpsert))
         .then(() => done())
         .catch(done);
     });

@@ -165,7 +165,7 @@ describe('Model', () => {
     it('sets primary key', () => {
       const model = require('test/test-helpers/build-single-table-schema')(engine);
       const actual = model.setPrimaryKey('id');
-      const expected = {primaryKey: 'id'};
+      const expected = 'id';
       expect(actual).to.be.deep.equal(expected);
     });
 

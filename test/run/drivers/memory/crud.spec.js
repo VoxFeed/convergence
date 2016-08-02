@@ -13,125 +13,192 @@ const buildPersonModel = require('test/test-helpers/build-single-table-schema');
 const buildEmployeeModel = require('test/test-helpers/build-extended-table-schema');
 const unexpectedData = require('test/test-helpers/unexpected-data');
 
+
+
+
+const store = {};
+const engine = memory(store);
+const personModel = buildPersonModel(engine);
+const employeeModel = buildEmployeeModel(engine, personModel);
+
+const loadFixtures = require('test/data/fixtures');
+const resetDatabase = require('test/data/fixtures/reset-memory');
+
+const BAD_INPUT = 'BAD_INPUT';
+
 describe('Memory Crud', () => {
   let personsCrud;
   let employeesCrud;
 
-  beforeEach(() => {
-    const store = {
-      'persons': personsFixtures.map(person => snakeobj(person)),
-      'employees': employeesFixtures.map(emp => snakeobj(emp))
-    };
-
-    const engine = memory(store);
-    const personModel = buildPersonModel(engine);
-    const employeeModel = buildEmployeeModel(engine, personModel);
-
-    personsCrud = Crud(engine, personModel);
-    employeesCrud = Crud(engine, employeeModel);
-  });
-
   describe('Find One', () => {
-    it('returns a promise', () => {
-      const actual = personsCrud.findOne({where: {name: 'Jon'}}).constructor.name;
-      const expected = 'Promise';
-      expect(actual).to.be.equal(expected);
-    });
-
-    it('returns an error if unknown fields are sent', (done) => {
-      personsCrud.findOne({where: {unknown: 'field'}})
-        .then(() => done('unexpected data'))
-        .catch((error) => {
-          expect(error.name).to.be.equal('BAD_INPUT');
-          done();
-        });
-    });
-
-    it('should return a plain object', (done) => {
-      personsCrud.findOne({where: {name: 'Jon'}})
-        .then(record => {
-          expect(isPlainObject(record)).to.be.true;
-        })
+    describe('Simple Model', () => {
+      beforeEach(done => {
+        personsCrud = Crud(engine, personModel);
+        resetDatabase({persons: personModel}, store)
+        .then(() => loadFixtures({persons: personsCrud}))
         .then(() => done())
         .catch(done);
+      });
+
+      it('returns a promise', () => {
+        const actual = personsCrud.findOne({where: {name: 'Jon'}}).constructor.name;
+        const expected = 'Promise';
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should find by primary key', done => {
+        personsCrud.findOne({where: {'id': personsFixtures[2].id}})
+          .then(record => {
+            expect(record).to.be.deep.equal(personsFixtures[2]);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('returns an error if unknown fields are sent', (done) => {
+        personsCrud.findOne({where: {unknown: 'field'}})
+          .then(() => done('unexpected data'))
+          .catch((error) => {
+            expect(error.name).to.be.equal('BAD_INPUT');
+            done();
+          });
+      });
+
+      it('should return a plain object', (done) => {
+        personsCrud.findOne({where: {name: 'Jon'}})
+          .then(record => {
+            expect(isPlainObject(record)).to.be.true;
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return first object found', (done) => {
+        personsCrud.findOne({where: {'job.title': 'Programmer'}})
+          .then(record => {
+            expect(record).to.be.deep.equal(personsFixtures[1]);
+          })
+          .then(() => done())
+          .catch(done);
+      });
     });
 
-    it('should return first object found', (done) => {
-      personsCrud.findOne({where: {'job.title': 'Programmer'}})
-        .then(record => {
-          expect(record).to.be.deep.equal(personsFixtures[1]);
-        })
-        .then(() => done())
-        .catch(done);
-    });
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        employeesCrud = Crud(engine, employeeModel);
+        resetDatabase({persons: personModel, employees: employeeModel}, store)
+          .then(() => loadFixtures({fullEmployee: employeesCrud}))
+          .then(() => done())
+          .catch(done);
+      });
 
-    it('should return object when fetch a compose object', (done) => {
-      const recordExpected = Object.assign({}, personsFixtures[1], employeesFixtures[1]);
-      employeesCrud.findOne({where: {'job.title': 'Programmer'}})
-        .then(record => {
-          expect(record).to.be.deep.equal(recordExpected);
-        })
-        .then(() => done())
-        .catch(done);
+      it('should find by primary key', done => {
+        employeesCrud.findOne({where: {personId: employeesFixtures[2].personId}})
+          .then(record => {
+            expect(record).to.be.deep.equal(Object.assign({}, personsFixtures[2], employeesFixtures[2]));
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return object when fetch a compose object', (done) => {
+        const recordExpected = Object.assign({}, personsFixtures[1], employeesFixtures[1]);
+        employeesCrud.findOne({where: {'job.title': 'Programmer'}})
+          .then(record => {
+            expect(record).to.be.deep.equal(recordExpected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should find by unique index key', (done) => {
+        const recordExpected = Object.assign({}, personsFixtures[1], employeesFixtures[1]);
+        employeesCrud.findOne({where: {ssn: employeesFixtures[1].ssn}})
+          .then(record => {
+            expect(record).to.be.deep.equal(recordExpected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
     });
   });
 
   describe('Find', () => {
-    it('returns the correct records', (done) => {
-      const query = {
-        where: { or: [
-          {id: personsFixtures[0].id},
-          {id: personsFixtures[2].id}
-        ]}
-      };
-      personsCrud.find(query)
-        .then((persons) => {
-          const ids = persons.map(person => person.id);
-          expect(ids).to.be.deep.equal(ids);
-          done();
-        })
-        .catch(done);
-    });
-
-    it('returns an empty array when not found records', (done) => {
-      const query = {where: {name: 'Jon', lastName: 'Snow'}};
-      personsCrud.find(query)
-        .then((response) => expect(response).to.be.empty)
+    describe('Simple Model', () => {
+      beforeEach(done => {
+        personsCrud = Crud(engine, personModel);
+        resetDatabase({persons: personModel}, store)
+        .then(() => loadFixtures({persons: personsCrud}))
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('throws an error when unknown fields are sent', (done) => {
-      personsCrud.find({where: {unknown: 'field'}})
-        .then(() => done('unexpected data'))
-        .catch((error) => {
-          expect(error.name).to.be.equal('BAD_INPUT');
-          done();
-        });
-    });
+      it('returns the correct records', (done) => {
+        const query = {
+          where: { or: [
+            {id: personsFixtures[0].id},
+            {id: personsFixtures[2].id}
+          ]}
+        };
+        personsCrud.find(query)
+          .then((persons) => {
+            const ids = persons.map(person => person.id);
+            expect(ids).to.be.deep.equal(ids);
+            done();
+          })
+          .catch(done);
+      });
 
-    it('returns an array when filter has operators', (done) => {
-      const query = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-      personsCrud.find(query)
-        .then((response) => {
-          expect(isArray(response)).to.be.true;
-          expect(response).to.not.be.empty;
-          done();
-        })
-        .catch(done);
-    });
+      it('returns an empty array when not found records', (done) => {
+        const query = {where: {name: 'Jon', lastName: 'Snow'}};
+        personsCrud.find(query)
+          .then((response) => expect(response).to.be.empty)
+          .then(() => done())
+          .catch(done);
+      });
 
-    it('returns an array when model is extended', (done) => {
-      const query = {where: {'job.title': 'Programmer'}};
-      employeesCrud.find(query)
-        .then((response) => {
-          expect(response.length).to.be.equal(4);
-          response.forEach(item => {
-            expect(response.id).to.be.equal(response.personId);
+      it('throws an error when unknown fields are sent', (done) => {
+        personsCrud.find({where: {unknown: 'field'}})
+          .then(() => done('unexpected data'))
+          .catch((error) => {
+            expect(error.name).to.be.equal('BAD_INPUT');
+            done();
           });
-          done();
-        })
-        .catch(done);
+      });
+
+      it('returns an array when filter has operators', (done) => {
+        const query = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+        personsCrud.find(query)
+          .then((response) => {
+            expect(isArray(response)).to.be.true;
+            expect(response).to.not.be.empty;
+            done();
+          })
+          .catch(done);
+      });
+    });
+
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        employeesCrud = Crud(engine, employeeModel);
+        resetDatabase({persons: personModel, employees: employeeModel}, store)
+          .then(() => loadFixtures({fullEmployee: employeesCrud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return an array', (done) => {
+        const query = {where: {'job.title': 'Programmer'}};
+        employeesCrud.find(query)
+          .then((response) => {
+            expect(response.length).to.be.equal(4);
+            response.forEach(item => {
+              expect(response.id).to.be.equal(response.personId);
+            });
+            done();
+          })
+          .catch(done);
+      });
     });
   });
 
@@ -166,22 +233,30 @@ describe('Memory Crud', () => {
   });
 
   describe('Insert', () => {
-    it('should return promise', () => {
-      const actual = personsCrud.insert({name: 'Jon'}).constructor.name;
-      const expected = 'Promise';
-      expect(actual).to.be.equal(expected);
-    });
+    describe('Simple', () => {
+      beforeEach(done => {
+        personsCrud = Crud(engine, personModel);
+        resetDatabase({persons: personModel}, store)
+        .then(() => done())
+        .catch(done);
+      });
 
-    it('should return error when trying to insert unkown field', done => {
-      personsCrud.insert({unknown: 'Field'})
+      it('should return promise', () => {
+        const actual = personsCrud.insert({name: 'Jon'}).constructor.name;
+        const expected = 'Promise';
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should return error when trying to insert unkown field', done => {
+        personsCrud.insert({unknown: 'Field'})
         .then(unexpectedData)
         .catch(err => expect(err.name).to.be.equal('BAD_INPUT'))
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should create record', done => {
-      personsCrud.insert({id: uuid(), name: 'Jon'})
+      it('should create record', done => {
+        personsCrud.insert({id: uuid(), name: 'Jon'})
         .then(person => {
           const expected = 'Jon';
           const actual = person.name;
@@ -196,38 +271,29 @@ describe('Memory Crud', () => {
         })
         .then(() => done())
         .catch(done);
+      });
     });
 
-    it('should create record', done => {
-      personsCrud.insert({id: uuid(), name: 'Jon'})
-        .then(person => {
-          const expected = 'Jon';
-          const actual = person.name;
-          expect(actual).to.be.equal(expected);
-          return person;
-        })
-        .then(person => personsCrud.findOne({where: {id: person.id}}))
-        .then(person => {
-          const expected = 'Jon';
-          const actual = person.name;
-          expect(actual).to.be.equal(expected);
-        })
-        .then(() => done())
-        .catch(done);
-    });
+    describe('Extended', () => {
+      beforeEach(done => {
+        employeesCrud = Crud(engine, employeeModel);
+        resetDatabase({persons: personModel, employees: employeeModel}, store)
+          .then(() => done())
+          .catch(done);
+      });
 
-    it('should create record with extended model', done => {
-      const data = {
-        id: uuid(),
-        name: 'Jane',
-        lastName: 'Doe',
-        age: 25,
-        schedule: '09:30 - 18:30',
-        entryDate: new Date('2016-07-26T00:00:00.000Z'),
-        ssn: '465154654561'
-      };
+      it('should create record', done => {
+        const data = {
+          id: uuid(),
+          name: 'Jane',
+          lastName: 'Doe',
+          age: 25,
+          schedule: '09:30 - 18:30',
+          entryDate: new Date('2016-07-26T00:00:00.000Z'),
+          ssn: '465154654561'
+        };
 
-      employeesCrud.insert(data)
+        employeesCrud.insert(data)
         .then(person => {
           const expected = 'Jane';
           const actual = person.name;
@@ -247,104 +313,124 @@ describe('Memory Crud', () => {
         })
         .then(() => done())
         .catch(done);
+      });
     });
   });
 
   describe('Update', () => {
-    it('should update single existing record', done => {
-      const query = {where: {id: personsFixtures[0].id}};
-      const data = {lastName: 'Not Doe'};
-      const expectUpdate = person => {
-        const expected = 'Not Doe';
-        const actual = person.lastName;
-        expect(actual).to.be.equal(expected);
-        return person;
-      };
+    describe('Simple', () => {
+      beforeEach(done => {
+        personsCrud = Crud(engine, personModel);
+        resetDatabase({persons: personModel}, store)
+        .then(() => loadFixtures({persons: personsCrud}))
+        .then(() => done())
+        .catch(done);
+      });
 
-      personsCrud.update(query, data)
+      it('should update single existing record', done => {
+        const query = {where: {id: personsFixtures[0].id}};
+        const data = {lastName: 'Not Doe'};
+        const expectUpdate = person => {
+          const expected = 'Not Doe';
+          const actual = person.lastName;
+          expect(actual).to.be.equal(expected);
+          return person;
+        };
+
+        personsCrud.update(query, data)
         .then(expectUpdate)
         .then(person => personsCrud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should update multiple records', done => {
-      const query = {where: {'job.title': 'Programmer'}};
-      const data = {job: {companyName: 'new value', title: 'Programmer'}};
-      const expectUpdate = persons => {
-        return persons.map(person => {
-          expect(person.job).to.have.property('companyName', 'new value');
-          return person;
-        });
-      };
+      it('should update multiple records', done => {
+        const query = {where: {'job.title': 'Programmer'}};
+        const data = {job: {companyName: 'new value', title: 'Programmer'}};
+        const expectUpdate = persons => {
+          return persons.map(person => {
+            expect(person.job).to.have.property('companyName', 'new value');
+            return person;
+          });
+        };
 
-      personsCrud.update(query, data)
+        personsCrud.update(query, data)
         .then(expectUpdate)
         .then(persons => personsCrud.find(query))
         .then(expectUpdate)
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should return error when trying to update with unkown field in data', done => {
-      const query = {where: {name: 'Jon'}};
-      const data = {unknown: 'Field'};
-      personsCrud.update(query, data)
+      it('should return error when trying to update with unkown field in data', done => {
+        const query = {where: {name: 'Jon'}};
+        const data = {unknown: 'Field'};
+        personsCrud.update(query, data)
         .then(() => done('unexpected data'))
         .catch(err => {
           expect(err.name).to.be.equal('BAD_INPUT');
           done();
         });
-    });
+      });
 
-    it('should return error when trying to update with unkown field in query', done => {
-      const query = {where: {unknown: 'Field'}};
-      const data = {name: 'Jon'};
-      personsCrud.update(query, data)
+      it('should return error when trying to update with unkown field in query', done => {
+        const query = {where: {unknown: 'Field'}};
+        const data = {name: 'Jon'};
+        personsCrud.update(query, data)
         .then(() => done('unexpected data'))
         .catch(err => {
           expect(err.name).to.be.equal('BAD_INPUT');
           done();
         });
+      });
     });
 
-    it('should return error if keyword where is missing', done => {
-      const query = {name: 'Jon'};
-      const data = {lastName: 'doe'};
-      personsCrud.update(query, data)
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        employeesCrud = Crud(engine, employeeModel);
+        resetDatabase({persons: personModel, employees: employeeModel}, store)
+          .then(() => loadFixtures({fullEmployee: employeesCrud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return error if keyword where is missing', done => {
+        const query = {name: 'Jon'};
+        const data = {lastName: 'doe'};
+        employeesCrud.update(query, data)
         .then(() => done('unexpected data'))
         .catch(err => {
           expect(err.name).to.be.equal('BAD_INPUT');
           done();
         });
-    });
+      });
 
-    it('should update property in json field', done => {
-      const query = {where: {id: personsFixtures[0].id}};
-      const data = {'job.companyName': 'new value'};
-      const expectUpdate = person => {
-        expect(person.job).to.have.property('companyName', 'new value');
-        return person;
-      };
+      it('should update property in json field', done => {
+        const query = {where: {id: personsFixtures[0].id}};
+        const data = {'job.companyName': 'new value'};
+        const expectUpdate = person => {
+          expect(person.job).to.have.property('companyName', 'new value');
+          return person;
+        };
 
-      personsCrud.update(query, data)
+        employeesCrud.update(query, data)
         .then(expectUpdate)
         .then(person => personsCrud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should update extended model', done => {
-      const query = {where: {id: personsFixtures[0].id}};
-      const data = {'job.companyName': 'new value'};
-      const expectUpdate = person => {
-        expect(person.job).to.have.property('companyName', 'new value');
-        return person;
-      };
+      it('should update extended model', done => {
+        const query = {where: {id: personsFixtures[0].id}};
+        const data = {'job.companyName': 'new value'};
+        const expectUpdate = person => {
+          expect(person.job).to.have.property('companyName', 'new value');
+          return person;
+        };
 
-      employeesCrud.update(query, data)
+        employeesCrud.update(query, data)
         .then(expectUpdate)
         .then(person => personsCrud.findOne({where: {id: person.id}}))
         .then(expectUpdate)
@@ -352,153 +438,140 @@ describe('Memory Crud', () => {
         .then(expectUpdate)
         .then(() => done())
         .catch(done);
+      });
     });
   });
 
   describe('Upsert', () => {
-    it('should update single existing record', done => {
-      const person = Object.assign({}, personsFixtures[0]);
-      person.lastName = 'Not Doe';
-      const expectUpsert = person => {
-        const expected = 'Not Doe';
-        const actual = person.lastName;
-        expect(actual).to.be.equal(expected);
-        return person;
-      };
-
-      personsCrud.upsert(person)
-        .then(expectUpsert)
-        .then(person => personsCrud.findOne({where: {id: person.id}}))
-        .then(expectUpsert)
+    describe('Simple', () => {
+      beforeEach(done => {
+        personsCrud = Crud(engine, personModel);
+        resetDatabase({persons: personModel}, store)
+        .then(() => loadFixtures({persons: personsCrud}))
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should return error when trying to upsert with unkown field in data', done => {
-      const person = Object.assign({}, personsFixtures[0]);
-      person.unknown = 'Field';
-      personsCrud.upsert(person)
-        .then(() => done('unexpected data'))
-        .catch(err => {
-          expect(err.name).to.be.equal('BAD_INPUT');
-          done();
-        });
-    });
-
-    it('should insert record when it does not exists', done => {
-      const personId = uuid();
-      const employeeData = {
-        id: personId,
-        name: 'Jane',
-        personId: personId,
-        lastName: 'Doe',
-        age: 25,
-        schedule: '09:30 - 18:30',
-        entryDate: new Date('2016-07-26T00:00:00.000Z'),
-        ssn: '465154654561'
-      };
-      const query = {where: {id: personId}};
-
-      employeesCrud.findOne(query)
-        .then(employee => {
-          expect(employee).to.be.undefined;
-          return employeesCrud.upsert(employeeData);
-        })
-        .then(employee => personsCrud.findOne(query))
-        .then(person => {
-          expect(person.id).to.be.equal(personId);
-          expect(person.name).to.be.equal('Jane');
-          expect(person.age).to.be.equal(25);
-          return employeesCrud.findOne({where: {personId: person.id}});
-        })
-        .then(employee => {
-          expect(employee.personId).to.be.equal(personId);
-          expect(employee.schedule).to.be.equal('09:30 - 18:30');
-          expect(employee.ssn).to.be.equal('465154654561');
-          done();
-        })
-        .catch(done);
-    });
-
-    it('should create new id when is not sent', done => {
-      const employeeData = {
-        name: 'Jane',
-        lastName: 'Doe',
-        age: 25,
-        rating: 7,
-        schedule: '09:30 - 18:30',
-        entryDate: new Date('2016-07-26T00:00:00.000Z'),
-        ssn: '465154654561'
-      };
-      const query = {where: {rating: 7}};
-
-      employeesCrud.findOne(query)
-        .then(employee => {
-          expect(employee).to.be.undefined;
-          return employeesCrud.upsert(employeeData);
-        })
-        .then(employee => personsCrud.findOne(query))
-        .then(person => {
-          expect(person.id).to.be.exist;
-          expect(person.name).to.be.equal('Jane');
-          expect(person.age).to.be.equal(25);
-          return employeesCrud.findOne({where: {personId: person.id}});
-        })
-        .then(employee => {
-          expect(employee.personId).to.be.exist;
-          expect(employee.schedule).to.be.equal('09:30 - 18:30');
-          expect(employee.ssn).to.be.equal('465154654561');
-          done();
-        })
-        .catch(done);
-    });
-
-    it('should upsert extended model', done => {
-      const employee = Object.assign({}, employeesFixtures[0]);
-      employee.schedule = '10:00 - 14:00';
-      employee.lastName = 'Dane';
-      const expectUpdate = employee => {
-        expect(employee).to.have.property('schedule', '10:00 - 14:00');
-        expect(employee).to.have.property('lastName', 'Dane');
-        return employee;
-      };
-
-      employeesCrud.upsert(employee)
-        .then(expectUpdate)
-        .then(person => personsCrud.findOne({where: {id: person.id}}))
-        .then(person => {
-          expect(person).to.have.property('lastName', 'Dane');
+      it('should update single existing record', done => {
+        const person = Object.assign({}, personsFixtures[0]);
+        person.lastName = 'Not Doe';
+        const expectUpsert = person => {
+          const expected = 'Not Doe';
+          const actual = person.lastName;
+          expect(actual).to.be.equal(expected);
           return person;
-        })
-        .then(person => employeesCrud.findOne({where: {id: person.id}}))
-        .then(expectUpdate)
-        .then(() => done())
-        .catch(done);
+        };
+
+        personsCrud.upsert(person)
+          .then(expectUpsert)
+          .then(person => personsCrud.findOne({where: {id: person.id}}))
+          .then(expectUpsert)
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should create new id when is not sent', done => {
+        const personData = {
+          name: 'Jane',
+          lastName: 'Doe',
+          age: 25,
+          rating: 7
+        };
+        const query = {where: {rating: 7}};
+
+        personsCrud.findOne(query)
+          .then(person => {
+            expect(person).to.be.undefined;
+            return personsCrud.upsert(personData);
+          })
+          .then(person => personsCrud.findOne(query))
+          .then(person => {
+            expect(person.id).to.be.exist;
+            expect(person.name).to.be.equal('Jane');
+            expect(person.age).to.be.equal(25);
+            done();
+          })
+          .catch(done);
+      });
     });
 
-    it('should upsert by primary Key when unique indexes are not defined', done => {
-      const collection = 'new_model';
-      const definition = {
-        id: types.PRIMARY_KEY,
-        name: types.STRING
-      };
-      const recordId = uuid();
-      const newEngine = memory({'new_model': [{id: recordId, name: 'Test'}]});
-      const newModel = defineModel({collection, definition, engine: newEngine});
-      newModel.setPrimaryKey('id');
-      const newModelCrud = Crud(newEngine, newModel);
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        employeesCrud = Crud(engine, employeeModel);
+        resetDatabase({persons: personModel, employees: employeeModel}, store)
+          .then(() => loadFixtures({fullEmployee: employeesCrud}))
+          .then(() => done())
+          .catch(done);
+      });
 
-      const expectUpsert = (record) => {
-        expect(record).to.have.property('name', 'Jon');
-        return record;
-      };
+      it('should upsert extended model', done => {
+        const employee = Object.assign({}, employeesFixtures[0]);
+        employee.schedule = '10:00 - 14:00';
+        employee.lastName = 'Dane';
+        const expectUpdate = employee => {
+          expect(employee).to.have.property('schedule', '10:00 - 14:00');
+          expect(employee).to.have.property('lastName', 'Dane');
+          return employee;
+        };
 
-      newModelCrud.upsert({id: recordId, name: 'Jon'})
-        .then(expectUpsert)
-        .then(record => newModelCrud.findOne({where: {id: record.id}}))
-        .then(expectUpsert)
-        .then(() => done())
-        .catch(done);
+        employeesCrud.upsert(employee)
+          .then(expectUpdate)
+          .then(employee => employeesCrud.findOne({where: {personId: employee.id}}))
+          .then(employee => {
+            expect(employee).to.have.property('lastName', 'Dane');
+            return employee;
+          })
+          .then(person => employeesCrud.findOne({where: {id: person.id}}))
+          .then(expectUpdate)
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return error when trying to upsert with unkown field in data', done => {
+        const employee = Object.assign({}, personsFixtures[0], employeesFixtures[0]);
+        employee.unknown = 'Field';
+        employeesCrud.upsert(employee)
+          .then(() => done('unexpected data'))
+          .catch(err => {
+            expect(err.name).to.be.equal('BAD_INPUT');
+            done();
+          });
+      });
+
+      it('should insert record when it does not exists', done => {
+        const personId = uuid();
+        const employeeData = {
+          id: personId,
+          name: 'Jane',
+          personId: personId,
+          lastName: 'Doe',
+          age: 25,
+          schedule: '09:30 - 18:30',
+          entryDate: new Date('2016-07-26T00:00:00.000Z'),
+          ssn: '465154654561'
+        };
+        const query = {where: {id: personId}};
+
+        employeesCrud.findOne(query)
+          .then(employee => {
+            expect(employee).to.be.undefined;
+            return employeesCrud.upsert(employeeData);
+          })
+          .then(employee => personsCrud.findOne(query))
+          .then(person => {
+            expect(person.id).to.be.equal(personId);
+            expect(person.name).to.be.equal('Jane');
+            expect(person.age).to.be.equal(25);
+            return employeesCrud.findOne({where: {personId: person.id}});
+          })
+          .then(employee => {
+            expect(employee.personId).to.be.equal(personId);
+            expect(employee.schedule).to.be.equal('09:30 - 18:30');
+            expect(employee.ssn).to.be.equal('465154654561');
+            done();
+          })
+          .catch(done);
+      });
     });
 
     it('should return error when unique index and primary key are not defined', done => {
@@ -508,7 +581,7 @@ describe('Memory Crud', () => {
         name: types.STRING
       };
       const recordId = uuid();
-      const newEngine = memory({'new_model': [{id: recordId, name: 'Test'}]});
+      const newEngine = memory({});
       const newModel = defineModel({collection, definition, engine: newEngine});
       const newModelCrud = Crud(newEngine, newModel);
 
@@ -521,20 +594,29 @@ describe('Memory Crud', () => {
   });
 
   describe('Remove', () => {
-    it('should remove all records if no query is sent', done => {
-      const query = {where: {}};
+    describe('Simple Model', () => {
+      beforeEach(done => {
+        personsCrud = Crud(engine, personModel);
+        resetDatabase({persons: personModel}, store)
+        .then(() => loadFixtures({persons: personsCrud}))
+        .then(() => done())
+        .catch(done);
+      });
 
-      personsCrud.remove(query)
+      it('should remove all records if no query is sent', done => {
+        const query = {where: {}};
+
+        personsCrud.remove(query)
         .then(persons => expect(persons.length).to.be.equal(6))
         .then(() => personsCrud.find(query))
         .then(persons => expect(persons.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should remove correct record with one field', done => {
-      const query = {where: {name: 'Jon'}};
-      personsCrud.remove(query)
+      it('should remove correct record with one field', done => {
+        const query = {where: {name: 'Jon'}};
+        personsCrud.remove(query)
         .then(persons => {
           expect(persons.length).to.be.equal(1);
           const person = persons.pop();
@@ -545,11 +627,11 @@ describe('Memory Crud', () => {
         .then(person => expect(person).not.to.exist)
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should remove correct records with or operator', done => {
-      const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
-      personsCrud.remove(query)
+      it('should remove correct records with or operator', done => {
+        const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
+        personsCrud.remove(query)
         .then(persons => {
           expect(persons.length).to.be.equal(2);
           const expectedIds = [personsFixtures[0].id, personsFixtures[2].id].sort();
@@ -560,30 +642,41 @@ describe('Memory Crud', () => {
         .then(persons => expect(persons.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
+      });
     });
 
-    it('should remove correct records for single json inner query', done => {
-      const query = {where: {'job.title': 'Programmer'}};
-      personsCrud.remove(query)
-        .then(persons => {
-          expect(persons.length).to.be.equal(4);
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        employeesCrud = Crud(engine, employeeModel);
+        resetDatabase({persons: personModel, employees: employeeModel}, store)
+          .then(() => loadFixtures({fullEmployee: employeesCrud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove correct records for single json inner query', done => {
+        const query = {where: {'job.title': 'Programmer'}};
+        employeesCrud.remove(query)
+        .then(employees => {
+          expect(employees.length).to.be.equal(4);
           const expectedIds = [
-            personsFixtures[1].id,
-            personsFixtures[3].id,
-            personsFixtures[4].id,
-            personsFixtures[5].id].sort();
-          expect(persons.map(p => p.id).sort().join()).to.be.equal(expectedIds.join());
-          return persons;
+            employeesFixtures[1].personsId,
+            employeesFixtures[3].personsId,
+            employeesFixtures[4].personsId,
+            employeesFixtures[5].personsId
+          ].sort();
+          expect(employees.map(e => e.personsId).sort().join()).to.be.equal(expectedIds.join());
+          return employees;
         })
-        .then(() => personsCrud.find(query))
-        .then(persons => expect(persons.length).to.be.equal(0))
+        .then(() => employeesCrud.find(query))
+        .then(employees => expect(employees.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
-    });
+      });
 
-    it('should remoe both records for extended model', done => {
-      const query = {where: {id: personsFixtures[0].id}};
-      employeesCrud.remove(query)
+      it('should remoe both records for extended model', done => {
+        const query = {where: {id: personsFixtures[0].id}};
+        employeesCrud.remove(query)
         .then(employees => {
           expect(employees.length).to.be.equal(1);
           expect(employees[0].id).to.be.equal(personsFixtures[0].id);
@@ -594,6 +687,7 @@ describe('Memory Crud', () => {
         .then(employees => expect(employees.length).to.be.equal(0))
         .then(() => done())
         .catch(done);
+      });
     });
   });
 });

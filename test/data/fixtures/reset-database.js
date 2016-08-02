@@ -1,7 +1,7 @@
 const Client = require('pg').Client;
 const selectCreator = require('./creators');
 
-const resetDatabase = tables => {
+const resetDatabase = (tables) => {
   return connectToPostgress()
     .then(dropTables(tables))
     .then(createTables(tables))

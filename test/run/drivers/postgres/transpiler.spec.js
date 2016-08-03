@@ -527,7 +527,7 @@ describe('Postgres Transpiler', () => {
         'INSERT INTO employees (schedule, person_id) VALUES ' +
         '(\'9:00 - 6:00\', \'1\') ON CONFLICT (person_id) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
         'WHERE employees.person_id=\'1\'; ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
+        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
         const actual = transpiler.upsert(data, {where: {id: '1', personId: '1'}});
         expect(actual).to.be.equal(expected);
       });

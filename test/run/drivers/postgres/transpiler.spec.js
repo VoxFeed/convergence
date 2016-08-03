@@ -507,6 +507,15 @@ describe('Postgres Transpiler', () => {
         expect(actual).to.be.equal(expected);
       });
 
+      it('ignores primary key from set values', () => {
+        const data = {id: '1', name: 'Jon'};
+        const query = {where: {'job.title': 'Programmer'}};
+        const expected = 'UPDATE persons SET name=\'Jon\' ' +
+          'WHERE persons.job->>\'title\'=\'Programmer\' RETURNING *';
+        const actual = transpiler.update(query, data);
+        expect(actual).to.be.equal(expected);
+      });
+
       it('should create update SQL with one field and no conditions', () => {
         const data = {name: 'Jon'};
         const query = {};

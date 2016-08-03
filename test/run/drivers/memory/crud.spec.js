@@ -501,7 +501,7 @@ describe('Memory Crud', () => {
         .catch(done);
     });
 
-    it('should insert when unique index  and primary key are not defined', done => {
+    it('should return error when unique index and primary key are not defined', done => {
       const collection = 'new_model';
       const definition = {
         id: types.PRIMARY_KEY,
@@ -512,15 +512,9 @@ describe('Memory Crud', () => {
       const newModel = defineModel({collection, definition, engine: newEngine});
       const newModelCrud = Crud(newEngine, newModel);
 
-      const expectUpsert = (record) => {
-        expect(record).to.have.property('id', recordId);
-        return record;
-      };
-
       newModelCrud.upsert({id: recordId, name: 'Jon'})
-        .then(expectUpsert)
-        .then(record => newModelCrud.find({where: {id: record.id}}))
-        .then(records => records.map(expectUpsert))
+        .then(unexpectedData)
+        .catch(err => expect(err.name).to.be.equal('BAD_INDEXES_FOR_UPSERT'))
         .then(() => done())
         .catch(done);
     });

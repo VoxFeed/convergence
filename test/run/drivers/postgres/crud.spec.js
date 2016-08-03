@@ -303,123 +303,180 @@ describe('Postgres Crud', () => {
   });
 
   describe('Upsert', () => {
-    let crud;
+    describe('Single Model', () => {
+      let crud;
 
-    beforeEach(done => {
-      model = require('test/test-helpers/build-single-table-schema')(engine);
-      crud = model;
-      resetDatabase(['persons'])
-        .then(() => loadFixtures({persons: crud}))
-        .then(() => done())
-        .catch(done);
-    });
-
-    describe('Single Index', () => {
-      it('returns promise', () => {
-        const data = {name: 'Jon'};
-        const actual = crud.upsert(data, {where: {}}).constructor.name;
-        const expected = 'Promise';
-        expect(actual).to.be.equal(expected);
-      });
-
-      it('inserts when no conflict', done => {
-        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
-        const data = {
-          id,
-          name: 'Gus',
-          lastName: 'Ortiz',
-          rating: 10,
-          job: {title: 'Programmer'}
-        };
-        const expectCorrectPerson = person => {
-          expect(person.name).to.be.equal('Gus');
-          expect(person.lastName).to.be.equal('Ortiz');
-          expect(person.id).to.be.equal(id);
-        };
-        crud.upsert(data, {where: {}})
-          .then(expectCorrectPerson)
-          .then(() => model.findOne({where: {id}}))
-          .then(expectCorrectPerson)
+      beforeEach(done => {
+        model = require('test/test-helpers/build-single-table-schema')(engine);
+        crud = model;
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
       });
 
-      it('updates record when there is conflict', done => {
-        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
-        const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
-        const data = {
-          id,
-          name: 'Gus',
-          lastName: 'Ortiz',
-          rating: 1,
-          job: {title: 'Programmer'}
-        };
-        const expectCorrectPerson = person => {
-          expect(person.name).to.be.equal('Gus');
-          expect(person.lastName).to.be.equal('Ortiz');
-        };
+      describe('Single Index', () => {
+        it('returns promise', () => {
+          const data = {name: 'Jon'};
+          const actual = crud.upsert(data, {where: {}}).constructor.name;
+          const expected = 'Promise';
+          expect(actual).to.be.equal(expected);
+        });
 
-        model.upsert(data, {where: {rating: 1}})
+        it('inserts when no conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz',
+            rating: 10,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+            expect(person.id).to.be.equal(id);
+          };
+          crud.upsert(data, {where: {}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+
+        it('updates record when there is conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz',
+            rating: 1,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+          };
+
+          model.upsert(data, {where: {rating: 1}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id: id1}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+
+        it('uses primary key if no unique indexes present', done => {
+          const noIndexesModel = defineModel({
+            collection: 'persons',
+            engine,
+            definition: {
+              id: types.PRIMARY_KEY,
+              name: types.STRING,
+              lastName: types.STRING
+            }
+          });
+          noIndexesModel.setPrimaryKey('id');
+          const id = '672ee20a-77a0-4670-ac19-17c73e588774';
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+          };
+          const {upsert, findOne} = Crud(engine, noIndexesModel);
+          upsert({
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz'
+          })
           .then(expectCorrectPerson)
-          .then(() => model.findOne({where: {id: id1}}))
+          .then(() => findOne({where: {id}}))
           .then(expectCorrectPerson)
           .then(() => done())
           .catch(done);
+        });
       });
 
-      it('uses primary key if no unique indexes present', done => {
-        const noIndexesModel = defineModel({
-          collection: 'persons',
-          engine,
-          definition: {
-            id: types.PRIMARY_KEY,
+      describe('Combined Index', () => {
+        beforeEach(() => {
+          const schema = {
+            id: types.UUID,
             name: types.STRING,
-            lastName: types.STRING
-          }
+            lastName: types.STRING,
+            rating: types.INTEGER,
+            job: types.JSON,
+            age: types.INTEGER,
+            tracked: types.BOOLEAN,
+            createdAt: types.DATE
+          };
+          model = defineModel({
+            collection: 'persons',
+            engine,
+            definition: schema
+          });
+
+          model.setPrimaryKey('id');
+          model.unique({combined: ['lastName', 'rating']});
         });
-        noIndexesModel.setPrimaryKey('id');
-        const id = '672ee20a-77a0-4670-ac19-17c73e588774';
-        const expectCorrectPerson = person => {
-          expect(person.name).to.be.equal('Gus');
-          expect(person.lastName).to.be.equal('Ortiz');
-        };
-        const {upsert, findOne} = Crud(engine, noIndexesModel);
-        upsert({
-          id,
-          name: 'Gus',
-          lastName: 'Ortiz'
-        })
-        .then(expectCorrectPerson)
-        .then(() => findOne({where: {id}}))
-        .then(expectCorrectPerson)
-        .then(() => done())
-        .catch(done);
+
+        it('inserts when no conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz',
+            rating: 10,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+            expect(person.id).to.be.equal(id);
+          };
+          crud.upsert(data, {where: {}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+
+        it('updates record when there is conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Doe',
+            rating: 1,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Doe');
+          };
+
+          crud.upsert(data, {where: {rating: 1, lastName: 'Doe'}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id: id1}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
       });
     });
 
-    describe('Combined Index', () => {
-      beforeEach(() => {
-        const schema = {
-          id: types.UUID,
-          name: types.STRING,
-          lastName: types.STRING,
-          rating: types.INTEGER,
-          job: types.JSON,
-          age: types.INTEGER,
-          tracked: types.BOOLEAN,
-          createdAt: types.DATE
-        };
-        model = defineModel({
-          collection: 'persons',
-          engine,
-          definition: schema
-        });
-
-        model.setPrimaryKey('id');
-        model.unique({combined: ['lastName', 'rating']});
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        model = require('test/test-helpers/build-single-table-schema')(engine);
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: model}))
+          .then(() => done())
+          .catch(done);
       });
 
-      it('inserts when no conflict', done => {
+      it.skip('inserts when no conflict in both tables', done => {
         const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
         const data = {
           id,
@@ -433,32 +490,9 @@ describe('Postgres Crud', () => {
           expect(person.lastName).to.be.equal('Ortiz');
           expect(person.id).to.be.equal(id);
         };
-        crud.upsert(data, {where: {}})
+        model.upsert(data, {where: {}})
           .then(expectCorrectPerson)
           .then(() => model.findOne({where: {id}}))
-          .then(expectCorrectPerson)
-          .then(() => done())
-          .catch(done);
-      });
-
-      it('updates record when there is conflict', done => {
-        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
-        const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
-        const data = {
-          id,
-          name: 'Gus',
-          lastName: 'Doe',
-          rating: 1,
-          job: {title: 'Programmer'}
-        };
-        const expectCorrectPerson = person => {
-          expect(person.name).to.be.equal('Gus');
-          expect(person.lastName).to.be.equal('Doe');
-        };
-
-        crud.upsert(data, {where: {rating: 1, lastName: 'Doe'}})
-          .then(expectCorrectPerson)
-          .then(() => model.findOne({where: {id: id1}}))
           .then(expectCorrectPerson)
           .then(() => done())
           .catch(done);

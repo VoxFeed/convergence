@@ -438,6 +438,19 @@ describe('Postgres Transpiler', () => {
         expect(actual).to.be.equal(expected);
       });
 
+      it('ignores primary key from update set values', () => {
+        model.setPrimaryKey('id');
+        model.unique({single: ['age']});
+        const {upsert} = PostgresTranspiler(model);
+        const data = {id: '1', name: 'Jon', age: 25};
+        const expected = 'INSERT INTO persons (id, name, age) ' +
+          'VALUES (\'1\', \'Jon\', 25) ON CONFLICT (age) DO UPDATE ' +
+          'SET name=\'Jon\', age=25 WHERE persons.age=25 ' +
+          'RETURNING *';
+        const actual = upsert(data, {where: {age: 25}});
+        expect(actual).to.be.equal(expected);
+      });
+
       it('creates upsert query with multiple unique indexes and json property', () => {
         model.unique({single: ['last_name', 'age']});
         const {upsert} = PostgresTranspiler(model);

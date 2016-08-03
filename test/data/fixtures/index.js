@@ -6,10 +6,6 @@ const fixtureSelector = {
 };
 
 const loadFixtures = cruds => {
-  return seedValues(cruds);
-};
-
-const seedValues = cruds => {
   const seeds = Object.keys(cruds).map(collection => buildSeed(collection, cruds[collection]));
   return Promise.all(flatten(seeds))
     .catch(err => {

@@ -22,7 +22,7 @@ describe('Postgres Crud', () => {
       let crud;
 
       beforeEach(done => {
-        crud = Crud(engine, model);
+        crud = model;
         resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
@@ -76,7 +76,7 @@ describe('Postgres Crud', () => {
         });
         extended.extend(model, 'personId');
 
-        crud = Crud(engine, extended);
+        crud = extended;
         resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())
@@ -114,7 +114,7 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
-      crud = Crud(engine, model);
+      crud = model;
 
       resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
@@ -162,7 +162,7 @@ describe('Postgres Crud', () => {
 
     beforeEach(done => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
-      crud = Crud(engine, model);
+      crud = model;
       resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
         .then(() => done())
@@ -209,7 +209,7 @@ describe('Postgres Crud', () => {
       let crud;
 
       beforeEach(done => {
-        crud = Crud(engine, model);
+        crud = model;
         resetDatabase(['persons'])
           .then(() => done());
       });
@@ -306,7 +306,8 @@ describe('Postgres Crud', () => {
     let crud;
 
     beforeEach(done => {
-      crud = Crud(engine, model);
+      model = require('test/test-helpers/build-single-table-schema')(engine);
+      crud = model;
       resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
         .then(() => done())
@@ -314,10 +315,6 @@ describe('Postgres Crud', () => {
     });
 
     describe('Single Index', () => {
-      beforeEach(() => {
-        model.unique({single: ['rating']});
-      });
-
       it('returns promise', () => {
         const data = {name: 'Jon'};
         const actual = crud.upsert(data, {where: {}}).constructor.name;
@@ -362,7 +359,7 @@ describe('Postgres Crud', () => {
           expect(person.lastName).to.be.equal('Ortiz');
         };
 
-        crud.upsert(data, {where: {rating: 1}})
+        model.upsert(data, {where: {rating: 1}})
           .then(expectCorrectPerson)
           .then(() => model.findOne({where: {id: id1}}))
           .then(expectCorrectPerson)

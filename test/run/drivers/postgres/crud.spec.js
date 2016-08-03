@@ -497,6 +497,23 @@ describe('Postgres Crud', () => {
           .catch(done);
       });
 
+      it('should update single existing record ignoring id', done => {
+        const query = {where: {name: 'Jon'}};
+        const data = {id: '2', lastName: 'Not Doe'};
+        const expectUpdate = person => {
+          expect(person.lastName).to.be.equal('Not Doe');
+          expect(person.id).not.to.be.equal('2');
+          return person;
+        };
+
+        crud.update(query, data)
+          .then(expectUpdate)
+          .then(person => crud.findOne({where: {id: person.id}}))
+          .then(expectUpdate)
+          .then(() => done())
+          .catch(done);
+      });
+
       it('should return error when trying to update with unkown field in data', done => {
         const query = {where: {name: 'Jon'}};
         const data = {unknown: 'Field'};

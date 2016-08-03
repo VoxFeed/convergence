@@ -476,7 +476,7 @@ describe('Postgres Crud', () => {
           .catch(done);
       });
 
-      it.skip('inserts when no conflict in both tables', done => {
+      it('inserts when no conflict in both tables', done => {
         const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
         const data = {
           id,
@@ -488,6 +488,8 @@ describe('Postgres Crud', () => {
         const expectCorrectPerson = person => {
           expect(person.name).to.be.equal('Gus');
           expect(person.lastName).to.be.equal('Ortiz');
+          expect(person.rating).to.be.equal(10);
+          expect(person.job).to.have.property('title', 'Programmer');
           expect(person.id).to.be.equal(id);
         };
         model.upsert(data, {where: {}})

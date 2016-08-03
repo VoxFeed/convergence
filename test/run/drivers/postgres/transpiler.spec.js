@@ -493,18 +493,21 @@ describe('Postgres Transpiler', () => {
 
     describe('Extended Model', () => {
       let transpiler;
+      let base;
+      let extended;
 
       beforeEach(() => {
-        const base = defineModel({
+        base = defineModel({
           collection: 'persons',
           engine,
           definition: {
             id: types.PRIMARY_KEY,
-            name: types.STRING
+            name: types.STRING,
+            rating: types.INTEGER
           }
         });
         base.setPrimaryKey('id');
-        const extended = defineModel({
+        extended = defineModel({
           collection: 'employees',
           engine,
           definition: {
@@ -529,6 +532,52 @@ describe('Postgres Transpiler', () => {
         'WHERE employees.person_id=\'1\'; ' +
         'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
         const actual = transpiler.upsert(data, {where: {id: '1', personId: '1'}});
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('creates sql with one field and single index in each table making the relation', () => {
+        base.unique({single: ['rating']});
+        const data = {id: '1', name: 'Jon', rating: 1, schedule: '9:00 - 6:00', personId: '1'};
+        const query = {where: {id: '1', personId: '1'}};
+        const expected = '' +
+        'INSERT INTO persons (id, name, rating) VALUES (\'1\', \'Jon\', 1) ' +
+        'ON CONFLICT (rating) DO UPDATE SET name=\'Jon\', rating=1 WHERE persons.id=\'1\'; ' +
+        'INSERT INTO employees (schedule, person_id) VALUES ' +
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (person_id) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
+        'WHERE employees.person_id=\'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        const actual = transpiler.upsert(data, query);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('creates sql with one field and single index on child table in each table making the relation', () => {
+        extended.unique({single: ['schedule']});
+        const data = {id: '1', name: 'Jon', rating: 1, schedule: '9:00 - 6:00', personId: '1'};
+        const query = {where: {id: '1', personId: '1'}};
+        const expected = '' +
+        'INSERT INTO persons (id, name, rating) VALUES (\'1\', \'Jon\', 1) ' +
+        'ON CONFLICT (id) DO UPDATE SET name=\'Jon\', rating=1 WHERE persons.id=\'1\'; ' +
+        'INSERT INTO employees (schedule, person_id) VALUES ' +
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (schedule) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
+        'WHERE employees.person_id=\'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        const actual = transpiler.upsert(data, query);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('creates sql with one field and combined index on base and single index on child table, making the relation', () => {
+        base.unique({combined: ['name', 'rating']});
+        extended.unique({single: ['schedule']});
+        const data = {id: '1', name: 'Jon', rating: 1, schedule: '9:00 - 6:00', personId: '1'};
+        const query = {where: {id: '1', personId: '1'}};
+        const expected = '' +
+        'INSERT INTO persons (id, name, rating) VALUES (\'1\', \'Jon\', 1) ' +
+        'ON CONFLICT (name, rating) DO UPDATE SET name=\'Jon\', rating=1 WHERE persons.id=\'1\'; ' +
+        'INSERT INTO employees (schedule, person_id) VALUES ' +
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (schedule) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
+        'WHERE employees.person_id=\'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        const actual = transpiler.upsert(data, query);
         expect(actual).to.be.equal(expected);
       });
     });

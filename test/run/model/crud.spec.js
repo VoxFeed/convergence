@@ -13,7 +13,7 @@ describe('Crud', () => {
   let model;
 
   beforeEach(() => {
-    const store = {accounts: []};
+    const store = {};
     const engine = engines.memory(store);
     model = defineModel({
       collection: 'accounts',

@@ -1,6 +1,5 @@
 const isArray = require('lodash/isArray');
 const isPlainObject = require('lodash/isPlainObject');
-const snakeobj = require('snakeobj');
 const uuid = require('uuid-v4');
 
 const {memory} = require('lib/engines');
@@ -12,9 +11,6 @@ const employeesFixtures = require('test/data/fixtures/employees');
 const buildPersonModel = require('test/test-helpers/build-single-table-schema');
 const buildEmployeeModel = require('test/test-helpers/build-extended-table-schema');
 const unexpectedData = require('test/test-helpers/unexpected-data');
-
-
-
 
 const store = {};
 const engine = memory(store);
@@ -59,7 +55,7 @@ describe('Memory Crud', () => {
         personsCrud.findOne({where: {unknown: 'field'}})
           .then(() => done('unexpected data'))
           .catch((error) => {
-            expect(error.name).to.be.equal('BAD_INPUT');
+            expect(error.name).to.be.equal(BAD_INPUT);
             done();
           });
       });
@@ -161,7 +157,7 @@ describe('Memory Crud', () => {
         personsCrud.find({where: {unknown: 'field'}})
           .then(() => done('unexpected data'))
           .catch((error) => {
-            expect(error.name).to.be.equal('BAD_INPUT');
+            expect(error.name).to.be.equal(BAD_INPUT);
             done();
           });
       });
@@ -221,7 +217,7 @@ describe('Memory Crud', () => {
     it('should return error if unknown fields are sent', done => {
       personsCrud.count({where: {unknown: 'field'}})
         .then(() => done('unexpected data'))
-        .catch(err => expect(err.name).to.be.equal('BAD_INPUT'))
+        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
         .then(() => done());
     });
 
@@ -250,7 +246,7 @@ describe('Memory Crud', () => {
       it('should return error when trying to insert unkown field', done => {
         personsCrud.insert({unknown: 'Field'})
         .then(unexpectedData)
-        .catch(err => expect(err.name).to.be.equal('BAD_INPUT'))
+        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
         .then(() => done())
         .catch(done);
       });
@@ -369,7 +365,7 @@ describe('Memory Crud', () => {
         personsCrud.update(query, data)
         .then(() => done('unexpected data'))
         .catch(err => {
-          expect(err.name).to.be.equal('BAD_INPUT');
+          expect(err.name).to.be.equal(BAD_INPUT);
           done();
         });
       });
@@ -380,7 +376,7 @@ describe('Memory Crud', () => {
         personsCrud.update(query, data)
         .then(() => done('unexpected data'))
         .catch(err => {
-          expect(err.name).to.be.equal('BAD_INPUT');
+          expect(err.name).to.be.equal(BAD_INPUT);
           done();
         });
       });
@@ -401,7 +397,7 @@ describe('Memory Crud', () => {
         employeesCrud.update(query, data)
         .then(() => done('unexpected data'))
         .catch(err => {
-          expect(err.name).to.be.equal('BAD_INPUT');
+          expect(err.name).to.be.equal(BAD_INPUT);
           done();
         });
       });
@@ -533,7 +529,7 @@ describe('Memory Crud', () => {
         employeesCrud.upsert(employee)
           .then(() => done('unexpected data'))
           .catch(err => {
-            expect(err.name).to.be.equal('BAD_INPUT');
+            expect(err.name).to.be.equal(BAD_INPUT);
             done();
           });
       });
@@ -588,6 +584,157 @@ describe('Memory Crud', () => {
       newModelCrud.upsert({id: recordId, name: 'Jon'})
         .then(unexpectedData)
         .catch(err => expect(err.name).to.be.equal('BAD_INDEXES_FOR_UPSERT'))
+        .then(() => done())
+        .catch(done);
+    });
+
+    describe('Combined Unique Index', () => {
+      let newModelCrud;
+      const collection = 'new_model';
+      const definition = {
+        id: types.PRIMARY_KEY,
+        name: types.STRING,
+        code: types.STRING,
+        sex: types.STRING
+      };
+
+      const fixtures = [
+        {id: uuid(), name: 'Jon', code: '111', sex: 'm'},
+        {id: uuid(), name: 'Jane', code: '111', sex: 'f'},
+        {id: uuid(), name: 'Dough', code: '333', sex: 'm'},
+        {id: uuid(), name: 'Mary', code: '333', sex: 'f'},
+        {id: uuid(), name: 'Bob', code: '444', sex: 'm'}
+      ];
+
+      const loadFixtures = (crud) => {
+        const promises = fixtures.map(item => crud.insert(item));
+        return Promise.all(promises);
+      };
+
+      beforeEach(done => {
+        const newEngine = memory({});
+        const newModel = defineModel({collection, definition, engine: newEngine});
+        newModel.unique({combined: ['code', 'sex']});
+        newModel.setPrimaryKey('id');
+        newModelCrud = Crud(newEngine, newModel);
+        loadFixtures(newModelCrud).then(() => done());
+      });
+
+      it('should upsert correct record', done => {
+        const data = Object.assign({}, fixtures[1]);
+        data.name = 'Fulano';
+        const expectedData = (newModel) => {
+          expect(newModel.id).to.be.equal(data.id);
+          expect(newModel.name).to.be.equal('Fulano');
+          expect(newModel.code).to.be.equal('111');
+          expect(newModel.sex).to.be.equal('f');
+          return newModel;
+        };
+        newModelCrud.upsert(data)
+          .then(expectedData)
+          .then(newModel => newModelCrud.findOne({where: {id: data.id}}))
+          .then(expectedData)
+          .then(newModel => newModelCrud.find({where: {code: '111'}}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should insert correct record', done => {
+        const data = {name: 'Alex', code: '444', sex: 'f'};
+
+        newModelCrud.count({where: {}})
+          .then(count => {
+            expect(count).to.be.equal(5);
+            return count;
+          })
+          .then(() => newModelCrud.upsert(data))
+          .then(newModel => {
+            expect(newModel.name).to.be.equal('Alex');
+            expect(newModel.code).to.be.equal('444');
+            expect(newModel.sex).to.be.equal('f');
+            return newModelCrud.count({where: {}});
+          })
+          .then(newModel => newModelCrud.count({where: {}}))
+          .then(count => {
+            expect(count).to.be.equal(6);
+            return count;
+          })
+          .then(() => done())
+          .catch(done);
+      });
+    });
+  });
+
+  describe('Primary Key Index', () => {
+    let newModelCrud;
+    const collection = 'new_model';
+    const definition = {
+      id: types.PRIMARY_KEY,
+      name: types.STRING,
+      code: types.STRING,
+      sex: types.STRING
+    };
+
+    const fixtures = [
+      {id: uuid(), name: 'Jon', code: '111', sex: 'm'},
+      {id: uuid(), name: 'Jane', code: '111', sex: 'f'},
+      {id: uuid(), name: 'Dough', code: '333', sex: 'm'},
+      {id: uuid(), name: 'Mary', code: '333', sex: 'f'},
+      {id: uuid(), name: 'Bob', code: '444', sex: 'm'}
+    ];
+
+    const loadFixtures = (crud) => {
+      const promises = fixtures.map(item => crud.insert(item));
+      return Promise.all(promises);
+    };
+
+    beforeEach(done => {
+      const newEngine = memory({});
+      const newModel = defineModel({collection, definition, engine: newEngine});
+      newModel.setPrimaryKey('id');
+      newModelCrud = Crud(newEngine, newModel);
+      loadFixtures(newModelCrud).then(() => done());
+    });
+
+    it('should upsert correct record', done => {
+      const data = Object.assign({}, fixtures[1]);
+      data.name = 'Fulano';
+      const expectedData = (newModel) => {
+        expect(newModel.id).to.be.equal(data.id);
+        expect(newModel.name).to.be.equal('Fulano');
+        expect(newModel.code).to.be.equal('111');
+        expect(newModel.sex).to.be.equal('f');
+        return newModel;
+      };
+      newModelCrud.upsert(data)
+        .then(expectedData)
+        .then(newModel => newModelCrud.findOne({where: {id: data.id}}))
+        .then(expectedData)
+        .then(newModel => newModelCrud.find({where: {code: '111'}}))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should insert correct record', done => {
+      const data = {name: 'Alex', code: '444', sex: 'f'};
+
+      newModelCrud.count({where: {}})
+        .then(count => {
+          expect(count).to.be.equal(5);
+          return count;
+        })
+        .then(() => newModelCrud.upsert(data))
+        .then(newModel => {
+          expect(newModel.name).to.be.equal('Alex');
+          expect(newModel.code).to.be.equal('444');
+          expect(newModel.sex).to.be.equal('f');
+          return newModelCrud.count({where: {}});
+        })
+        .then(newModel => newModelCrud.count({where: {}}))
+        .then(count => {
+          expect(count).to.be.equal(6);
+          return count;
+        })
         .then(() => done())
         .catch(done);
     });

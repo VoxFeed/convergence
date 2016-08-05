@@ -1,4 +1,4 @@
-const forEach = require('lodash/forEach');
+const {forEach, isEmpty} = require('lodash');
 
 module.exports = (tables, store) => {
   const resetMemory = () => {
@@ -21,7 +21,11 @@ module.exports = (tables, store) => {
 
   const loadTable = model => {
     const indexName = `${model.collection}_indexes`;
-    const indexField = model.getUniqueSingleIndexes().join('°U°');
+    let indexField = model.getUniqueSingleIndexes();
+    if (isEmpty(indexField)) {
+      indexField = model.getUniqueCombinedIndexes();
+    }
+    indexField = indexField.join('°U°');
     store[model.collection] = {};
     store[indexName] = { primary: {}, unique: {[indexField]: {} }};
   };

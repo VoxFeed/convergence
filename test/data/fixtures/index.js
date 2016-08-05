@@ -1,6 +1,7 @@
 const {clone, flatten} = require('lodash');
 const fixtureSelector = {
   persons: require('./persons'),
+  positions: require('./positions'),
   employees: require('./employees'),
   fullEmployee: require('./full-employees')
 };

@@ -1,6 +1,7 @@
 const {types, defineModel, engines} = require('lib');
 
 const unexpectedData = require('test/test-helpers/unexpected-data');
+const resetDatabase = require('test/data/fixtures/reset-memory');
 
 const schema = {
   id: types.UUID,
@@ -12,7 +13,7 @@ const schema = {
 describe('Crud', () => {
   let model;
 
-  beforeEach(() => {
+  beforeEach(done => {
     const store = {};
     const engine = engines.memory(store);
     model = defineModel({
@@ -20,6 +21,10 @@ describe('Crud', () => {
       engine,
       definition: schema
     });
+
+    resetDatabase({accounts: model}, store)
+      .then(() => done())
+      .catch(done);
   });
 
   describe('Upsert', () => {

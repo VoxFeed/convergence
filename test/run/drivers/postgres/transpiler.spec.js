@@ -705,6 +705,22 @@ describe('Postgres Transpiler', () => {
         expect(actual).to.be.equal(expected);
       });
 
+      it('creates sql with values just primary key in where in both tables', () => {
+        const query = {where: {id: 1}};
+        const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};
+        const expected = '' +
+        'WITH PARENT_RECORD as (' +
+          'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
+          'WHERE persons.id=\'1\' AND persons.id=employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          '(SELECT id FROM PARENT_RECORD); ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\' AND ' +
+        'employees.ssn=\'123123\'';
+        const actual = transpiler.update(query, data);
+        expect(actual).to.be.equal(expected);
+      });
+
       it('creates sql with values in both tables and query in single table', () => {
         const query = {where: {name: 'Luis', last_name: 'Argumedo'}};
         const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};

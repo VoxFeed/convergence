@@ -738,6 +738,22 @@ describe('Postgres Transpiler', () => {
         expect(actual).to.be.equal(expected);
       });
 
+      it('creates sql with values in both tables and json query', () => {
+        const query = {where: {id: 1}};
+        const data = {name: 'Jon', job: {title: 'QA'}, ssn: '123123'};
+        const expected = '' +
+        'WITH PARENT_RECORD as (' +
+          'UPDATE persons SET name=\'Jon\', job=\'{"title":"QA"}\' FROM employees ' +
+          'WHERE persons.id=\'1\' AND persons.id=employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          '(SELECT id FROM PARENT_RECORD); ' +
+        'SELECT * FROM employees JOIN persons ON person_id=id ' +
+        'WHERE persons.name=\'Jon\' AND persons.job @> \'{"title":"QA"}\' AND ' +
+        'employees.ssn=\'123123\'';
+        const actual = transpiler.update(query, data);
+        expect(actual).to.be.equal(expected);
+      });
+
       it('creates sql with values in both tables and query in single table with or', () => {
         const query = {where: {or: [{name: 'Luis'}, {lastName: 'Argumedo'}]}};
         const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};

@@ -655,6 +655,25 @@ describe('Postgres Crud', () => {
           .then(() => done())
           .catch(done);
       });
+
+      it('should update correctly with json in data', done => {
+        const query = {where: {id: '672ee20a-77a0-4670-ac19-17c73e588774'}};
+        const data = {job: {title: 'QA'}, ssn: '74170'};
+        const expectUpdate = person => {
+          expect(person.name).to.be.equal('Jon');
+          expect(person.lastName).to.be.equal('Doe');
+          expect(person.ssn).to.be.equal('74170');
+          expect(person.job).to.have.property('title', 'QA');
+          return person;
+        };
+
+        crud.update(query, data)
+          .then(expectUpdate)
+          .then(person => crud.findOne(query))
+          .then(expectUpdate)
+          .then(() => done())
+          .catch(done);
+      });
     });
   });
 

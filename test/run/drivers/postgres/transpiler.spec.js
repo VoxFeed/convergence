@@ -119,14 +119,14 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with order and single field to order', () => {
         const uql = {order: [{age: 'ASC'}]};
-        const expected = 'SELECT * FROM persons ORDER BY age ASC';
+        const expected = 'SELECT * FROM persons ORDER BY persons.age ASC';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with multiple order conditions', () => {
         const uql = {order: [{age: 'ASC'}, {lastName: 'DESC'}]};
-        const expected = 'SELECT * FROM persons ORDER BY age ASC, last_name DESC';
+        const expected = 'SELECT * FROM persons ORDER BY persons.age ASC, persons.last_name DESC';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -134,7 +134,7 @@ describe('Postgres Transpiler', () => {
       it('should create correct SQL with where conditions and multiple order conditions', () => {
         const uql = {where: {'job.title': 'Programmer'}, order: [{age: 'ASC'}, {lastName: 'DESC'}]};
         const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
-         'ORDER BY age ASC, last_name DESC';
+         'ORDER BY persons.age ASC, persons.last_name DESC';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -182,6 +182,15 @@ describe('Postgres Transpiler', () => {
           'SELECT * FROM employees JOIN persons ON person_id=id ' +
           'WHERE persons.name=\'Jon\' OR employees.ssn=\'23534564356\'';
         const actual = transpiler.select(query);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with where conditions and multiple order conditions', () => {
+        const uql = {where: {'job.title': 'Programmer'}, order: [{age: 'ASC'}, {lastName: 'DESC'}]};
+        const expected = 'SELECT * FROM employees JOIN persons ON person_id=id ' +
+          'WHERE persons.job->>\'title\'=\'Programmer\' ' +
+          'ORDER BY persons.age ASC, persons.last_name DESC';
+        const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
     });

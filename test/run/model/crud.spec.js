@@ -1,3 +1,5 @@
+const omit = require('lodash/omit');
+
 const {types, defineModel, engines} = require('lib');
 
 const unexpectedData = require('test/test-helpers/unexpected-data');
@@ -45,6 +47,18 @@ describe('Crud', () => {
         .then(unexpectedData)
         .catch(err => {
           expect(err.name).to.be.equal('BAD_INDEXES_FOR_UPSERT');
+        })
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('rejects if required fields are not present', done => {
+      model.present(['name']);
+      model.setPrimaryKey('id');
+      model.upsert(omit(data, ['name']))
+        .then(unexpectedData)
+        .catch(err => {
+          expect(err.name).to.be.equal('CANT_UPSERT_RECORD');
         })
         .then(() => done())
         .catch(done);
@@ -105,6 +119,32 @@ describe('Crud', () => {
       model.setPrimaryKey('id');
       model.unique({combined: ['externalId', 'socialNetwork']});
       model.upsert(data, {})
+        .then(() => done())
+        .catch(done);
+    });
+  });
+
+  describe('Insert', () => {
+    const account = {
+      id: 'bb2b3183-e405-46ca-a43c-9ce612a98e3f',
+      name: 'codingpains',
+      externalId: '1870474',
+      socialNetwork: 'twitter'
+    };
+    let data;
+
+    beforeEach(() => {
+      data = Object.assign({}, account);
+    });
+
+    it('rejects if required fields are not present', done => {
+      model.present(['name']);
+      model.setPrimaryKey('id');
+      model.insert(omit(data, ['name']))
+        .then(unexpectedData)
+        .catch(err => {
+          expect(err.name).to.be.equal('CANT_INSERT_RECORD');
+        })
         .then(() => done())
         .catch(done);
     });

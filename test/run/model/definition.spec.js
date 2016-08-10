@@ -195,34 +195,36 @@ describe('Model', () => {
   });
 
   describe('present', () => {
+    const camelCase = require('lodash/camelCase')
     const buildModel = require('test/test-helpers/build-single-table-schema');
 
     it('should add known fields to not null list', () => {
       const model = buildModel(engine);
       const fields = ['name', 'lastName'];
       const notNull = model.present(fields);
-      expect(notNull.sort().join()).to.be.equal(fields.sort().join());
+      expect(notNull.map(camelCase).sort().join()).to.be.equal(fields.sort().join());
     });
 
     it('should ignore unknown fields', () => {
       const model = buildModel(engine);
       const fields = ['name', 'lastName'];
       const notNull = model.present([...fields, 'unknown']);
-      expect(notNull.sort().join()).to.be.equal(fields.sort().join());
+      expect(notNull.map(camelCase).sort().join()).to.be.equal(fields.sort().join());
     });
 
     it('should ignore duplicated fields', () => {
       const model = buildModel(engine);
       const fields = ['name', 'lastName'];
       const notNull = model.present([...fields, ...fields]);
-      expect(notNull.sort().join()).to.be.equal(fields.sort().join());
+      expect(notNull.map(camelCase).sort().join()).to.be.equal(fields.sort().join());
     });
 
     it('should get not null fields', () => {
       const model = buildModel(engine);
       const fields = ['name', 'lastName'];
       model.present(fields);
-      expect(model.getRequiredFields().sort().join()).to.be.equal(fields.sort().join());
+      expect(model.getRequiredFields().map(camelCase).sort().join())
+        .to.be.equal(fields.sort().join());
     });
   });
 

@@ -122,6 +122,21 @@ describe('Crud', () => {
         .then(() => done())
         .catch(done);
     });
+
+    it('should run function before save', done => {
+      model.setPrimaryKey('id');
+      model.beforeSave(data => {
+        data.name = 'Gustavo Ortiz';
+        return data;
+      });
+
+      model.upsert(data, {})
+        .then(record => {
+          expect(record.name).to.be.equal('Gustavo Ortiz');
+          done();
+        })
+        .catch(done);
+    });
   });
 
   describe('Insert', () => {

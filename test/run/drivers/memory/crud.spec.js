@@ -1,5 +1,4 @@
-const isArray = require('lodash/isArray');
-const isPlainObject = require('lodash/isPlainObject');
+const {isArray, isPlainObject, pick, omit} = require('lodash');
 const uuid = require('uuid-v4');
 
 const {memory} = require('lib/engines');
@@ -21,6 +20,8 @@ const loadFixtures = require('test/data/fixtures');
 const resetDatabase = require('test/data/fixtures/reset-memory');
 
 const BAD_INPUT = 'BAD_INPUT';
+const CANT_INSERT_RECORD = 'CANT_INSERT_RECORD';
+const CANT_UPSERT_RECORD = 'CANT_UPSERT_RECORD';
 
 describe('Memory Crud', () => {
   let personsCrud;
@@ -268,6 +269,24 @@ describe('Memory Crud', () => {
         .then(() => done())
         .catch(done);
       });
+
+      it('should returns error when primary key already exists', done => {
+        personsCrud.insert(personsFixtures[0])
+        .then(() => personsCrud.insert(omit(personsFixtures[0], 'rating')))
+        .then(unexpectedData)
+        .catch(error => expect(error.name).to.be.equal(CANT_INSERT_RECORD))
+        .then(() => done())
+        .catch(done);
+      });
+
+      it('should returns error when uniqueIndex already exists', done => {
+        personsCrud.insert(personsFixtures[0])
+        .then(() => personsCrud.insert(omit(personsFixtures[0], 'id')))
+        .then(unexpectedData)
+        .catch(error => expect(error.name).to.be.equal(CANT_INSERT_RECORD))
+        .then(() => done())
+        .catch(done);
+      });
     });
 
     describe('Extended', () => {
@@ -458,7 +477,7 @@ describe('Memory Crud', () => {
           return person;
         };
 
-        personsCrud.upsert(person)
+        personsCrud.upsert(person, {where: pick(person, 'rating')})
           .then(expectUpsert)
           .then(person => personsCrud.findOne({where: {id: person.id}}))
           .then(expectUpsert)
@@ -478,7 +497,7 @@ describe('Memory Crud', () => {
         personsCrud.findOne(query)
           .then(person => {
             expect(person).to.be.undefined;
-            return personsCrud.upsert(personData);
+            return personsCrud.upsert(personData, {where: pick(personData, 'rating')});
           })
           .then(person => personsCrud.findOne(query))
           .then(person => {
@@ -488,6 +507,22 @@ describe('Memory Crud', () => {
             done();
           })
           .catch(done);
+      });
+
+      it('should returns error when primary key already exists', done => {
+        personsCrud.upsert(omit(personsFixtures[0], 'rating'), {where: {rating: 100}})
+        .then(unexpectedData)
+        .catch(error => expect(error.name).to.be.equal(CANT_UPSERT_RECORD))
+        .then(() => done())
+        .catch(done);
+      });
+
+      it('should returns error when uniqueIndex already exists', done => {
+        personsCrud.upsert(omit(personsFixtures[0], 'id'), {where: {id: 100}})
+        .then(unexpectedData)
+        .catch(error => expect(error.name).to.be.equal(CANT_UPSERT_RECORD))
+        .then(() => done())
+        .catch(done);
       });
     });
 
@@ -510,7 +545,7 @@ describe('Memory Crud', () => {
           return employee;
         };
 
-        employeesCrud.upsert(employee)
+        employeesCrud.upsert(employee, {where: pick(employee, 'ssn')})
           .then(expectUpdate)
           .then(employee => employeesCrud.findOne({where: {personId: employee.id}}))
           .then(employee => {
@@ -551,7 +586,7 @@ describe('Memory Crud', () => {
         employeesCrud.findOne(query)
           .then(employee => {
             expect(employee).to.be.undefined;
-            return employeesCrud.upsert(employeeData);
+            return employeesCrud.upsert(employeeData, {where: pick(employeeData, 'ssn')});
           })
           .then(employee => personsCrud.findOne(query))
           .then(person => {
@@ -630,7 +665,7 @@ describe('Memory Crud', () => {
           expect(newModel.sex).to.be.equal('f');
           return newModel;
         };
-        newModelCrud.upsert(data)
+        newModelCrud.upsert(data, {where: pick(data, ['code', 'sex'])})
           .then(expectedData)
           .then(newModel => newModelCrud.findOne({where: {id: data.id}}))
           .then(expectedData)
@@ -647,7 +682,7 @@ describe('Memory Crud', () => {
             expect(count).to.be.equal(5);
             return count;
           })
-          .then(() => newModelCrud.upsert(data))
+          .then(() => newModelCrud.upsert(data, {where: pick(data, ['code', 'sex'])}))
           .then(newModel => {
             expect(newModel.name).to.be.equal('Alex');
             expect(newModel.code).to.be.equal('444');
@@ -706,7 +741,7 @@ describe('Memory Crud', () => {
         expect(newModel.sex).to.be.equal('f');
         return newModel;
       };
-      newModelCrud.upsert(data)
+      newModelCrud.upsert(data, {where: pick(data, 'id')})
         .then(expectedData)
         .then(newModel => newModelCrud.findOne({where: {id: data.id}}))
         .then(expectedData)
@@ -723,7 +758,7 @@ describe('Memory Crud', () => {
           expect(count).to.be.equal(5);
           return count;
         })
-        .then(() => newModelCrud.upsert(data))
+        .then(() => newModelCrud.upsert(data, {where: {id: 1}}))
         .then(newModel => {
           expect(newModel.name).to.be.equal('Alex');
           expect(newModel.code).to.be.equal('444');

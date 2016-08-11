@@ -129,6 +129,13 @@ describe('Memory Filter', () => {
     expect(actual).to.be.equal(expected);
   });
 
+  it('should order by field descendent with uppercase', () => {
+    const uql = {order: {'name': 'DESC'}};
+    const expected = [4, 1, 5, 3, 2, 6].join();
+    const actual = filter(uql).map(p => p.rating).join();
+    expect(actual).to.be.equal(expected);
+  });
+
   it('should order by two fields ascendent', () => {
     const uql = {order: {'job.title': 'asc', name: 'asc'}};
     const expected = [1, 6, 2, 5, 4, 3].join();

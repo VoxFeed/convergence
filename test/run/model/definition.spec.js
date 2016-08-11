@@ -226,6 +226,15 @@ describe('Model', () => {
       expect(model.getRequiredFields().map(camelCase).sort().join())
         .to.be.equal(fields.sort().join());
     });
+
+    it('should get required fields on extended models', () => {
+      const buildExtendedModel = require('test/test-helpers/build-extended-table-schema');
+      const model = buildExtendedModel(engine, buildModel(engine));
+      const fields = ['name', 'lastName', 'ssn'];
+      model.present(fields);
+      expect(model.getRequiredFields().map(camelCase).sort().join())
+        .to.be.equal(fields.sort().join());
+    });
   });
 
   describe('setPrimaryKey', () => {

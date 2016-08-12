@@ -524,6 +524,32 @@ describe('Memory Crud', () => {
         .then(() => done())
         .catch(done);
       });
+
+      it('should upsert correctly when the same record is sent several times', done => {
+        const personData = {
+          id: uuid(),
+          name: 'Jane',
+          lastName: 'Doe',
+          age: 25,
+          rating: 7
+        };
+        const query = {where: {rating: 7}};
+        const promises = [1, 2, 3, 4].map(a => personsCrud.upsert(personData, query));
+        Promise.all(promises)
+          .then(() => personsCrud.find(query))
+          .then(result => {
+            expect(result.length).to.be.equal(1);
+
+            Object.keys(personData).forEach(key => {
+              expect(result[0][key]).to.be.equal(personData[key]);
+            });
+            done();
+          })
+          .catch(err => {
+            console.log('ERROR', err);
+            done(err);
+          });
+      });
     });
 
     describe('Extended Model', () => {

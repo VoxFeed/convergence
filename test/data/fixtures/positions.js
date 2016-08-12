@@ -19,8 +19,8 @@ const persons = [
     id: '6d322343-e449-41d9-810c-c0d3946ccf4b',
     name: 'Kueski',
     code: '2222',
-    companyId: '23ef75bc-dcd9-43b2-9992-85315c424cc6',
-    active: true
+    active: true,
+    companyId: '23ef75bc-dcd9-43b2-9992-85315c424cc6'
   },
   {
     id: '0187c311-c3f3-48df-9c79-d31689417f05',

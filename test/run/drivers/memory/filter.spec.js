@@ -4,11 +4,17 @@ const first = require('lodash/first');
 
 const MemoryFilter = require('lib/drivers/memory/filter');
 const fixtures = require('test/data/fixtures/persons');
-const store = {'persons': fixtures.map(clone)};
+const positionsFixtures = require('test/data/fixtures/positions');
+
+const store = {'persons': fixtures.map(clone), positions: positionsFixtures.map(clone)};
 const {memory} = require('lib/engines');
 const engine = memory(store);
+
 const schema = require('test/test-helpers/build-single-table-schema')(engine);
+const positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
+
 const filter = MemoryFilter(schema, store);
+const positionsFilter = MemoryFilter(positionsModel, store);
 
 describe('Memory Filter', () => {
   it('should find item with one condition', () => {
@@ -30,6 +36,14 @@ describe('Memory Filter', () => {
     const expected = 1;
     const actual = get(first(filter(uql)), 'rating', null);
     expect(actual).to.be.equal(expected);
+  });
+
+  it('should find with a contains operator', () => {
+    const uql = {where: {employees: {contains: 'Karla'}}};
+    const record = positionsFilter(uql)[0];
+    expect(record.name).to.be.equal('iTexico');
+    expect(record.employees).to.be.deep.equal(['Karla', 'Hayde']);
+    expect(record.code).to.be.equal('2222');
   });
 
   it('should find with date ranges in one field gte and lt', () => {

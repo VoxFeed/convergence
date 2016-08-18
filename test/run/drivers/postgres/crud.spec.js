@@ -1,3 +1,5 @@
+const omit = require('lodash/omit');
+
 const unexpectedData = require('test/test-helpers/unexpected-data');
 const {postgres} = require('lib/engines');
 const Crud = require('lib/model/crud');
@@ -7,6 +9,7 @@ const {defineModel, types} = require('lib/model/definition');
 
 const loadFixtures = require('test/data/fixtures');
 const resetDatabase = require('test/data/fixtures/reset-database');
+const positionsFixtures = require('test/data/fixtures/positions');
 
 const BAD_INPUT = 'BAD_INPUT';
 
@@ -103,6 +106,29 @@ describe('Postgres Crud', () => {
 
       it('should not return error if operators are sent', done => {
         crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+          .then(() => done())
+          .catch(done);
+      });
+    });
+
+    describe('Array', () => {
+      let positionsModel;
+
+      beforeEach((done) => {
+        positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
+
+        resetDatabase(['positions'])
+          .then(() => loadFixtures({positions: positionsModel}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should find the correct record', done => {
+        positionsModel.findOne({where: {employees: {contains: 'Jon'}}})
+          .then(record => {
+            expect(record.name).to.be.equal('VoxFeed');
+            expect(record.employees.includes('Jon')).to.be.true;
+          })
           .then(() => done())
           .catch(done);
       });
@@ -295,6 +321,40 @@ describe('Postgres Crud', () => {
             const expected = 'Jon';
             const actual = person.name;
             expect(actual).to.be.equal(expected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+    });
+
+    describe('Array', () => {
+      let positionsModel;
+
+      beforeEach((done) => {
+        positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
+
+        resetDatabase(['positions'])
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should create a record', done => {
+        const dataToSave = positionsFixtures[0];
+        positionsModel.insert(dataToSave)
+          .then(record => {
+            expect(record.name).to.be.equal(dataToSave.name);
+            expect(record.employees).to.be.deep.equal(dataToSave.employees);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should create a record with null on field type array', done => {
+        const dataToSave = positionsFixtures[0];
+        positionsModel.insert(omit(dataToSave, 'employees'))
+          .then(record => {
+            expect(record.name).to.be.equal(dataToSave.name);
+            expect(record.employees).to.not.exist;
           })
           .then(() => done())
           .catch(done);

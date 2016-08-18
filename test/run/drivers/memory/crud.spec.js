@@ -197,6 +197,31 @@ describe('Memory Crud', () => {
           .catch(done);
       });
     });
+
+    describe('Array', () => {
+      let positionsModel;
+      let positionsCrud;
+
+      beforeEach((done) => {
+        positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
+        positionsCrud = Crud(engine, positionsModel);
+
+        resetDatabase({positions: positionsModel}, store)
+          .then(() => loadFixtures({positions: positionsCrud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should find the correct record', done => {
+        positionsModel.findOne({where: {employees: {contains: 'Jon'}}})
+          .then(record => {
+            expect(record.name).to.be.equal('VoxFeed');
+            expect(record.employees.includes('Jon')).to.be.true;
+          })
+          .then(() => done())
+          .catch(done);
+      });
+    });
   });
 
   describe('Count', () => {

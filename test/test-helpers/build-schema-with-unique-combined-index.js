@@ -6,6 +6,7 @@ const definition = {
   name: types.STRING,
   code: types.STRING,
   companyId: types.FOREIGN_KEY,
+  employees: types.ARRAY,
   active: types.BOOLEAN
 };
 

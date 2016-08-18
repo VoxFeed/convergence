@@ -7,16 +7,21 @@ const engine = {name: 'postgres', connection: {pool: {}}};
 
 describe('Postgres Transpiler', () => {
   let model;
+  let positionsModel;
 
   beforeEach(() => {
     model = require('test/test-helpers/build-single-table-schema')(engine);
+    positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
   });
 
   describe('Select', () => {
     describe('Simple Model', () => {
       let transpiler;
+      let positionTranspiler;
+
       beforeEach(() => {
         transpiler = PostgresTranspiler(model);
+        positionTranspiler = PostgresTranspiler(positionsModel);
       });
 
       it('should return correct sql if no where clause is sent', () => {
@@ -46,6 +51,13 @@ describe('Postgres Transpiler', () => {
         const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\' AND ' +
           'persons.last_name=\'Doe\' AND persons.age=23 AND persons.rating=5.2';
         const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with a contains operator', () => {
+        const uql = {where: {employees: {contains: 'Karla'}}};
+        const expected = 'SELECT * FROM positions WHERE \'Karla\' = ANY (positions.employees)';
+        const actual = positionTranspiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 

@@ -1,11 +1,8 @@
 const pick = require('lodash/pick');
-const isPlainObject = require('lodash/isPlainObject');
-const uuid = require('uuid-v4');
 const snakeobj = require('snakeobj');
 
 const {memory} = require('lib/engines');
 const Crud = require('lib/model/crud');
-const {types, defineModel} = require('lib/model/definition');
 
 const personsFixtures = require('test/data/fixtures/persons');
 const employeesFixtures = require('test/data/fixtures/employees');
@@ -13,7 +10,6 @@ const positionsFixtures = require('test/data/fixtures/positions');
 const buildPersonModel = require('test/test-helpers/build-single-table-schema');
 const buildEmployeeModel = require('test/test-helpers/build-extended-table-schema');
 const buildPositionModel = require('test/test-helpers/build-schema-with-unique-combined-index');
-const unexpectedData = require('test/test-helpers/unexpected-data');
 const FilterByIndex = require('lib/drivers/memory/filter-by-indexes');
 const store = {};
 const engine = memory(store);
@@ -23,8 +19,6 @@ const employeeModel = buildEmployeeModel(engine, personModel);
 
 const loadFixtures = require('test/data/fixtures');
 const resetDatabase = require('test/data/fixtures/reset-memory');
-
-const BAD_INPUT = 'BAD_INPUT';
 
 describe('Filter By Index', () => {
   let filterByIndex;

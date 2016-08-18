@@ -6,6 +6,7 @@ const persons = [
     name: 'VoxFeed',
     code: '1111',
     companyId: 'fcb884d4-8b97-49c2-8b00-1bbcc7061655',
+    employees: ['Jon', 'Alberto', 'Gibran', 'Luis', 'Jesus Agustin'],
     active: true
   },
   {
@@ -13,20 +14,23 @@ const persons = [
     name: 'Wizeline',
     code: '1111',
     companyId: 'd173ff5d-28a0-484c-ba95-be7e6a633eef',
+    employees: ['Abiee Alejandro'],
     active: true
   },
   {
     id: '6d322343-e449-41d9-810c-c0d3946ccf4b',
     name: 'Kueski',
     code: '2222',
-    active: true,
-    companyId: '23ef75bc-dcd9-43b2-9992-85315c424cc6'
+    companyId: '23ef75bc-dcd9-43b2-9992-85315c424cc6',
+    employees: [],
+    active: true
   },
   {
     id: '0187c311-c3f3-48df-9c79-d31689417f05',
     name: 'iTexico',
     code: '2222',
     companyId: 'b96fa763-9c66-478d-97b0-9dba653842e8',
+    employees: ['Karla', 'Hayde'],
     active: true
   },
   {
@@ -34,6 +38,7 @@ const persons = [
     name: 'Empathia',
     code: '3333',
     companyId: '99b0d2fb-04ea-4db7-930f-c69c91da900e',
+    employees: [],
     active: true
   },
   {
@@ -41,6 +46,7 @@ const persons = [
     name: 'Mexicoder',
     code: '3333',
     companyId: '4a259b9b-7aad-4b87-b828-27e1145a6f6b',
+    employees: [],
     active: false
   }
 ];

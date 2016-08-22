@@ -166,68 +166,6 @@ describe('Mongo Transpiler', () => {
       });
     });
 
-    describe.skip('Extended Model', () => {
-      let transpiler;
-
-      beforeEach(() => {
-        const extended = defineModel({
-          collection: 'employees',
-          engine,
-          definition: {
-            personId: types.FOREIGN_KEY,
-            schedule: types.STRING,
-            entryDate: types.DATE,
-            ssn: types.STRING
-          }
-        });
-        extended.extend(model, 'personId');
-        transpiler = PostgresTranspiler(extended);
-      });
-
-      it('creates sql with one field in each table', () => {
-        const data = {id: '1', name: 'Jon', schedule: '9:00 - 6:00'};
-        const expected = '' +
-        'WITH NEW_PARENT_RECORD as (' +
-          'INSERT INTO persons (id, name) VALUES (\'1\', \'Jon\') RETURNING id) ' +
-        'INSERT INTO employees (schedule, person_id) VALUES ' +
-          '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
-        const actual = transpiler.insert(data);
-        expect(actual).to.be.deep.equal(expected);
-      });
-
-      it('creates sql with fields in just the parent table', () => {
-        const data = {id: '1', name: 'Jon', lastName: 'Doe'};
-        const expected = '' +
-        'WITH NEW_PARENT_RECORD as (' +
-          'INSERT INTO persons (id, name, last_name) VALUES (\'1\', \'Jon\', \'Doe\') RETURNING id) ' +
-        'INSERT INTO employees (person_id) VALUES ' +
-          '((SELECT id FROM NEW_PARENT_RECORD)); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
-        const actual = transpiler.insert(data);
-        expect(actual).to.be.deep.equal(expected);
-      });
-
-      it('creates sql with fields in just the child table', () => {
-        const data = {id: '1', schedule: '9:00 - 6:00'};
-        const expected = '' +
-        'WITH NEW_PARENT_RECORD as (' +
-          'INSERT INTO persons (id) VALUES (\'1\') RETURNING id) ' +
-        'INSERT INTO employees (schedule, person_id) VALUES ' +
-          '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
-        const actual = transpiler.insert(data);
-        expect(actual).to.be.deep.equal(expected);
-      });
-
-      it('should return empty string if no data is sent', () => {
-        const data = {};
-        const expected = '';
-        const actual = transpiler.insert(data);
-        expect(actual).to.be.deep.equal(expected);
-      });
-    });
-
     describe('Count', () => {
       let transpiler;
       beforeEach(() => {

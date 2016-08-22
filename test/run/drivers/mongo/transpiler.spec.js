@@ -80,42 +80,42 @@ describe('Mongo Transpiler', () => {
         expect(actual).to.be.deep.equals(expected);
       });
 
-      it('should create correct SQL with or operator', () => {
+      it('should create correct MongoQuery with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
         const expected = {$or: [{name: 'Jon'}, {lastName: 'Doe'}]};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with explicit and operator', () => {
+      it('should create correct MongoQuery with explicit and operator', () => {
         const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
         const expected = {$and: [{name: 'Jon'}, {lastName: 'Doe'}]};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with a single lt operator', () => {
+      it('should create correct MongoQuery with a single lt operator', () => {
         const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
         const expected = {tracked: true, createdAt: {$lt: new Date(startDate)}};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL for single json inner query', () => {
+      it('should create correct MongoQuery for single json inner query', () => {
         const uql = {where: {'job.title': 'Programmer'}};
         const expected = {'job.title': 'Programmer'};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with order and single field to order', () => {
+      it('should create correct MongoQuery with order and single field to order', () => {
         const uql = {order: {age: 'ASC'}};
         const expected = {query: {}, sort: {age: 1}};
         const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with multiple order conditions', () => {
+      it('should create correct MongoQuery with multiple order conditions', () => {
         const uql = {order: {age: 'ASC', lastName: 'DESC'}};
         const expected = {query: {}, sort: {age: 1, lastName: -1}};
         const actual = transpiler.select(uql);
@@ -200,14 +200,14 @@ describe('Mongo Transpiler', () => {
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with bad values', () => {
+      it('should create correct MongoQuery with bad values', () => {
         const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
         const expected = {name: 123, lastName: null, age: null, rating: null};
         const actual = transpiler.count(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with a date range condition', () => {
+      it('should create correct MongoQuery with a date range condition', () => {
         const uql = {
           where: {
             createdAt: {gte: new Date(startDate), lt: new Date(endDate)}
@@ -220,7 +220,7 @@ describe('Mongo Transpiler', () => {
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with regular and date range conditions', () => {
+      it('should create correct MongoQuery with regular and date range conditions', () => {
         const regularConds = {name: 'Jon', lastName: 'Doe', age: 23};
         const dateRange = {
           createdAt: {
@@ -238,31 +238,184 @@ describe('Mongo Transpiler', () => {
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with or operator', () => {
+      it('should create correct MongoQuery with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
         const expected = {$or: [{name: 'Jon'}, {lastName: 'Doe'}]};
         const actual = transpiler.count(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with explicit and operator', () => {
+      it('should create correct MongoQuery with explicit and operator', () => {
         const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
         const expected = {$and: [{name: 'Jon'}, {lastName: 'Doe'}]};
         const actual = transpiler.count(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL with a single lt operator', () => {
+      it('should create correct MongoQuery with a single lt operator', () => {
         const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
         const expected = {tracked: true, createdAt: {$lt: new Date(startDate)}};
         const actual = transpiler.count(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
-      it('should create correct SQL for single json inner query', () => {
+      it('should create correct MongoQuery for single json inner query', () => {
         const uql = {where: {'job.title': 'Programmer'}};
         const expected = {'job.title': 'Programmer'};
         const actual = transpiler.count(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+    });
+
+    describe('Update', () => {
+      describe('Simple Model', () => {
+        let transpiler;
+
+        beforeEach(() => {
+          transpiler = MongoTranspiler();
+        });
+
+        it('should create update mongo query with one field', () => {
+          const data = {name: 'Jon'};
+          const query = {where: {'job.title': 'Programmer'}};
+          const expected = {
+            query: {'job.title': 'Programmer'},
+            update: {$set: {name: 'Jon'}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('ignores primary key from set values', () => {
+          const data = {id: '1', name: 'Jon'};
+          const query = {where: {'job.title': 'Programmer'}};
+          const expected = {
+            query: {'job.title': 'Programmer'},
+            update: {$set: {id: '1', name: 'Jon'}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('should create update mongo query with one field and no conditions', () => {
+          const data = {name: 'Jon'};
+          const query = {};
+          const expected = {
+            query: {},
+            update: {$set: {name: 'Jon'}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('should create update MongoQuery with one field and unexistent conditions', () => {
+          const data = {name: 'Jon'};
+          let query;
+          const expected = {
+            query: {},
+            update: {$set: {name: 'Jon'}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('should return empty object in update if no data is sent', () => {
+          const query = {where: {name: 'Jon'}};
+          const expected = {};
+          const actual = transpiler.update(query);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('should create update mongo with one full json field', () => {
+          const data = {'job': {title: 'Programmer', companyName: 'VoxFeed'}};
+          const query = {where: {name: 'Jon'}};
+          const expected = {
+            query: {name: 'Jon'},
+            update: {$set: {job: {title: 'Programmer', companyName: 'VoxFeed'}}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('should create update MongoQuery with one atribute in json field', () => {
+          const data = {'job.title': 'Programmer'};
+          const query = {where: {name: 'Jon'}};
+          const expected = {
+            query: {name: 'Jon'},
+            update: {$set: {'job.title': 'Programmer'}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+
+        it('should create update MongoQuery with two atributes in json field', () => {
+          const data = {'job.title': 'Programmer', 'job.companyName': 'VoxFeed'};
+          const query = {where: {name: 'Jon'}};
+          const expected = {
+            query: {name: 'Jon'},
+            update: {$set: {'job.title': 'Programmer', 'job.companyName': 'VoxFeed'}},
+            options: {multi: true}
+          };
+          const actual = transpiler.update(query, data);
+          expect(actual).to.be.deep.equal(expected);
+        });
+      });
+    });
+  });
+
+  describe('Remove', () => {
+    describe('Single Model', () => {
+      let transpiler;
+
+      beforeEach(() => {
+        transpiler = MongoTranspiler();
+      });
+
+      it('should return correct sql if no where clause is sent', () => {
+        const uql = {};
+        const expected = {};
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should create correct MongoQuery with one field', () => {
+        const query = {where: {name: 'Jon'}};
+        const expected = {name: 'Jon'};
+        const actual = transpiler.remove(query);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should create correct MongoQuery with many conditions', () => {
+        const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
+        const expected = {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2};
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should create correct MongoQuery with bad values', () => {
+        const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
+        const expected = {name: 123, lastName: null, age: null, rating: null};
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should create correct MongoQuery with or operator', () => {
+        const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
+        const expected = {$or: [{name: 'Jon'}, {lastName: 'Doe'}]};
+        const actual = transpiler.remove(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should create correct MongoQuery for single json inner query', () => {
+        const uql = {where: {'job.title': 'Programmer'}};
+        const expected = {'job.title': 'Programmer'};
+        const actual = transpiler.remove(uql);
         expect(actual).to.be.deep.equal(expected);
       });
     });

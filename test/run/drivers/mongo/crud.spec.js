@@ -332,4 +332,59 @@ describe('Mongo Crud', () => {
       });
     });
   });
+
+  describe('Remove', () => {
+    beforeEach(() => {
+      model = require('test/test-helpers/build-single-table-schema')(engine);
+    });
+
+    describe('Single Model', () => {
+      let crud;
+
+      beforeEach(done => {
+        crud = model;
+        resetDatabase(driver, ['persons'])
+          .then(() => loadFixtures({persons: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove all records if no query is sent', done => {
+        const query = {where: {}};
+
+        crud.remove(query)
+          .then(() => crud.find(query))
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove correct record with one field', done => {
+        const query = {where: {name: 'Jon'}};
+        crud.remove(query)
+          .then(person => crud.findOne(query))
+          .then(person => expect(person).not.to.exist)
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should remove correct records with or operator', done => {
+        const query = {where: {or: [{name: 'Jon'}, {lastName: 'Arias'}]}};
+        crud.remove(query)
+          .then(() => crud.find(query))
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should create correct records for single json inner query', done => {
+        const query = {where: {'job.title': 'Programmer'}};
+        crud.remove(query)
+          .then(() => crud.find(query))
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+    });
+  });
 });

@@ -150,6 +150,21 @@ describe('Postgres Transpiler', () => {
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
+
+      it('should create correct SQL with limit', () => {
+        const uql = {limit: 100};
+        const expected = 'SELECT * FROM persons LIMIT 100';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with where conditions and limit', () => {
+        const uql = {where: {'job.title': 'Programmer'}, limit: 100};
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
+         'LIMIT 100';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
     });
 
     describe('Extended Model', () => {
@@ -202,6 +217,15 @@ describe('Postgres Transpiler', () => {
         const expected = 'SELECT * FROM employees JOIN persons ON person_id=id ' +
           'WHERE persons.job->>\'title\'=\'Programmer\' ' +
           'ORDER BY persons.age ASC, persons.last_name DESC';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with where conditions and limit', () => {
+        const uql = {where: {'job.title': 'Programmer'}, limit: 100};
+        const expected = 'SELECT * FROM employees JOIN persons ON person_id=id ' +
+          'WHERE persons.job->>\'title\'=\'Programmer\' ' +
+          'LIMIT 100';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });

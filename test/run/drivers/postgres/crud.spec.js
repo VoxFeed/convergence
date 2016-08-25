@@ -162,6 +162,20 @@ describe('Postgres Crud', () => {
         .catch(done);
     });
 
+    it('should return one record', done => {
+      crud.find({where: {}, limit: 1})
+        .then(persons => expect(persons.length).to.be.equal(1))
+        .then(() => done())
+        .catch(done);
+    });
+
+    it('should return two records', done => {
+      crud.find({where: {}, limit: 2})
+        .then(persons => expect(persons.length).to.be.equal(2))
+        .then(() => done())
+        .catch(done);
+    });
+
     it('should find no record', done => {
       crud.find({where: {name: 'Jon', lastName: 'Nope'}})
         .then(persons => expect(persons.length).to.be.equal(0))

@@ -1,14 +1,20 @@
 const Client = require('pg').Client;
+const connectToMongo = require('./connect-mongo');
 const selectCreator = require('./creators');
 
-const resetDatabase = (tables) => {
-  return connectToPostgress()
+const resetPostgres = tables => {
+  return connectToPostgres()
     .then(dropTables(tables))
     .then(createTables(tables))
     .catch(respondWithError);
 };
 
-const connectToPostgress = (database) => {
+const resetDatabase = (driver, tables) => {
+  const reset = resetChooser[driver];
+  return reset(tables);
+};
+
+const connectToPostgres = database => {
   const client = new Client('postgres://postgres@localhost/test');
   return new Promise((resolve, reject) => {
     client.connect(err => {
@@ -53,6 +59,31 @@ const CantResetDatabase = cause => {
   this.name = 'CANT_RESET_DATABASE';
   this.message = `failed to reset the database: ${cause.message}`;
   return error;
+};
+
+const resetMongo = collections => {
+  return connectToMongo()
+    .then(dropCollections(collections))
+    .catch(respondWithError);
+};
+
+const dropCollections = collections => db => {
+  const promises = collections.map(dropCollection(db));
+  return Promise.all(promises).then(() => db);
+};
+
+const dropCollection = db => collection => {
+  return new Promise((resolve, reject) => {
+    db.collection(collection).remove((error) => {
+      if (error) return reject(error);
+      resolve(db);
+    });
+  });
+};
+
+const resetChooser = {
+  postgres: resetPostgres,
+  mongo: resetMongo
 };
 
 module.exports = resetDatabase;

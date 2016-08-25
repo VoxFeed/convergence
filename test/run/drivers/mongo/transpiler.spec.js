@@ -3,6 +3,7 @@ const {isEqual} = require('lodash');
 const MongoTranspiler = require('lib/drivers/mongo/transpiler');
 const startDate = 1;
 const endDate = 1;
+const engine = {name: 'mongo'};
 
 describe('Mongo Transpiler', () => {
   describe('Select', () => {
@@ -417,6 +418,87 @@ describe('Mongo Transpiler', () => {
         const expected = {'job.title': 'Programmer'};
         const actual = transpiler.remove(uql);
         expect(actual).to.be.deep.equal(expected);
+      });
+    });
+  });
+
+  describe('Upsert', () => {
+    describe('Single Model', () => {
+      const {defineModel, types} = require('lib/model/definition');
+      const options = {upsert: true};
+      let model;
+      let transpiler;
+
+      beforeEach(() => {
+        model = defineModel({
+          collection: 'persons',
+          definition: {
+            id: types.UUID,
+            name: types.STRING,
+            lastName: types.STRING,
+            age: types.INTEGER,
+            job: types.JSON
+          },
+          engine
+        });
+        transpiler = MongoTranspiler();
+      });
+
+      describe('Single Unique Index', () => {
+        it('creates upsert sql with no unique indexes', () => {
+          const data = {name: 'Jon'};
+          const expected = {query: {}, update: {$set: data}, options};
+          const actual = transpiler.upsert(data);
+          expect(actual).to.be.deep.equals(expected);
+        });
+
+        it('creates upsert sql with one unique index', () => {
+          model.unique({single: ['age']});
+          const data = {name: 'Jon', age: 25};
+          const query = {where: {age: 25}};
+          const expected = {query: {age: 25}, update: {$set: data}, options};
+          const actual = transpiler.upsert(data, query);
+          expect(actual).to.be.deep.equals(expected);
+        });
+
+        it('ignores primary key from update set values', () => {
+          model.setPrimaryKey('id');
+          model.unique({single: ['age']});
+          const data = {id: '1', name: 'Jon', age: 25};
+          const query = {where: {age: 25}};
+          const expected = {query: {age: 25}, update: {$set: data}, options};
+          const actual = transpiler.upsert(data, query);
+          expect(actual).to.be.deep.equals(expected);
+        });
+
+        it('creates upsert query with multiple unique indexes and json property', () => {
+          model.unique({single: ['last_name', 'age']});
+          const query = {where: {lastName: 'Doe'}};
+          const data = {name: 'Jon', last_name: 'Doe', age: 25};
+          const expected = {query: {lastName: 'Doe'}, update: {$set: data}, options};
+          const actual = transpiler.upsert(data, query);
+          expect(actual).to.be.deep.equals(expected);
+        });
+
+        it('creates upsert query with no unique indexes using primary key instead', () => {
+          model.setPrimaryKey('id');
+          const data = {id: '1', name: 'Jon'};
+          const query = {where: {id: '1'}};
+          const expected = {query: {id: '1'}, update: {$set: data}, options};
+          const actual = transpiler.upsert(data, query);
+          expect(actual).to.be.deep.equals(expected);
+        });
+      });
+
+      describe('Combined Unique Indexes', () => {
+        it('creates upsert sql with one combined index', () => {
+          model.unique({combined: ['age', 'last_name']});
+          const data = {name: 'Jon', age: 25};
+          const query = {where: {lastName: 'Doe'}};
+          const expected = {query: {lastName: 'Doe'}, update: {$set: data}, options};
+          const actual = transpiler.upsert(data, query);
+          expect(actual).to.be.deep.equals(expected);
+        });
       });
     });
   });

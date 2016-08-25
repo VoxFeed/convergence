@@ -292,7 +292,7 @@ describe('Mongo Transpiler', () => {
           const query = {where: {'job.title': 'Programmer'}};
           const expected = {
             query: {'job.title': 'Programmer'},
-            update: {$set: {id: '1', name: 'Jon'}},
+            update: {$set: {name: 'Jon'}},
             options: {multi: true}
           };
           const actual = transpiler.update(query, data);

@@ -1,5 +1,6 @@
 const Client = require('pg').Client;
-const connectToMongo = require('./connect-mongo');
+const connectToMongo = require('./../../../lib/drivers/mongo/util/connect-mongo');
+
 const selectCreator = require('./creators');
 
 const resetPostgres = tables => {

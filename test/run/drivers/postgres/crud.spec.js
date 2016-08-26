@@ -9,7 +9,7 @@ const driver = engine.name;
 const {defineModel, types} = require('lib/model/definition');
 
 const loadFixtures = require('test/data/fixtures');
-const resetDatabase = require('test/data/fixtures/reset-database');
+const resetDatabase = require('test/data/fixtures/reset-database')(driver);
 const positionsFixtures = require('test/data/fixtures/positions');
 
 const BAD_INPUT = 'BAD_INPUT';
@@ -27,7 +27,7 @@ describe('Postgres Crud', () => {
 
       beforeEach(done => {
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
@@ -81,7 +81,7 @@ describe('Postgres Crud', () => {
         extended.extend(model, 'personId');
 
         crud = extended;
-        resetDatabase(driver, ['persons', 'employees'])
+        resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())
           .catch(done);
@@ -118,7 +118,7 @@ describe('Postgres Crud', () => {
       beforeEach((done) => {
         positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
 
-        resetDatabase(driver, ['positions'])
+        resetDatabase(['positions'])
           .then(() => loadFixtures({positions: positionsModel}))
           .then(() => done())
           .catch(done);
@@ -143,7 +143,7 @@ describe('Postgres Crud', () => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
       crud = model;
 
-      resetDatabase(driver, ['persons'])
+      resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
@@ -190,7 +190,7 @@ describe('Postgres Crud', () => {
     beforeEach(done => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
       crud = model;
-      resetDatabase(driver, ['persons'])
+      resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
@@ -237,7 +237,7 @@ describe('Postgres Crud', () => {
 
       beforeEach(done => {
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => done());
       });
 
@@ -292,7 +292,7 @@ describe('Postgres Crud', () => {
         extended.extend(model, 'personId');
 
         crud = Crud(engine, extended);
-        resetDatabase(driver, ['persons', 'employees'])
+        resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())
           .catch(done);
@@ -334,7 +334,7 @@ describe('Postgres Crud', () => {
       beforeEach((done) => {
         positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
 
-        resetDatabase(driver, ['positions'])
+        resetDatabase(['positions'])
           .then(() => done())
           .catch(done);
       });
@@ -370,7 +370,7 @@ describe('Postgres Crud', () => {
       beforeEach(done => {
         model = require('test/test-helpers/build-single-table-schema')(engine);
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
@@ -531,7 +531,7 @@ describe('Postgres Crud', () => {
     describe('Extended Model', () => {
       beforeEach(done => {
         model = require('test/test-helpers/build-single-table-schema')(engine);
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: model}))
           .then(() => done())
           .catch(done);
@@ -570,7 +570,7 @@ describe('Postgres Crud', () => {
       beforeEach(done => {
         model = require('test/test-helpers/build-single-table-schema')(engine);
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
@@ -676,7 +676,7 @@ describe('Postgres Crud', () => {
         extended.extend(model, 'personId');
 
         crud = Crud(engine, extended);
-        resetDatabase(driver, ['persons', 'employees'])
+        resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())
           .catch(done);
@@ -748,7 +748,7 @@ describe('Postgres Crud', () => {
 
       beforeEach(done => {
         crud = Crud(engine, model);
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
@@ -801,7 +801,7 @@ describe('Postgres Crud', () => {
 
         crud = Crud(engine, extended);
 
-        resetDatabase(driver, ['persons', 'employees'])
+        resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())
           .catch(done);

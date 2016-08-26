@@ -7,7 +7,7 @@ const driver = engine.name;
 const positionsFixtures = require('test/data/fixtures/positions');
 
 const loadFixtures = require('test/data/fixtures');
-const resetDatabase = require('test/data/fixtures/reset-database');
+const resetDatabase = require('test/data/fixtures/reset-database')(driver);
 
 const BAD_INPUT = 'BAD_INPUT';
 
@@ -24,7 +24,7 @@ describe('Mongo Crud', () => {
 
       beforeEach(done => {
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
@@ -70,7 +70,7 @@ describe('Mongo Crud', () => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
       crud = model;
 
-      resetDatabase(driver, ['persons'])
+      resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
@@ -117,7 +117,7 @@ describe('Mongo Crud', () => {
     beforeEach(done => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
       crud = model;
-      resetDatabase(driver, ['persons'])
+      resetDatabase(['persons'])
         .then(() => loadFixtures({persons: crud}))
         .then(() => done())
         .catch(done);
@@ -164,7 +164,7 @@ describe('Mongo Crud', () => {
 
       beforeEach(done => {
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => done());
       });
 
@@ -208,7 +208,7 @@ describe('Mongo Crud', () => {
       beforeEach((done) => {
         positionsModel = require('test/test-helpers/build-schema-with-unique-combined-index')(engine);
 
-        resetDatabase(driver, ['positions'])
+        resetDatabase(['positions'])
           .then(() => done())
           .catch(done);
       });
@@ -244,7 +244,7 @@ describe('Mongo Crud', () => {
       beforeEach(done => {
         model = require('test/test-helpers/build-single-table-schema')(engine);
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);
@@ -343,7 +343,7 @@ describe('Mongo Crud', () => {
 
       beforeEach(done => {
         crud = model;
-        resetDatabase(driver, ['persons'])
+        resetDatabase(['persons'])
           .then(() => loadFixtures({persons: crud}))
           .then(() => done())
           .catch(done);

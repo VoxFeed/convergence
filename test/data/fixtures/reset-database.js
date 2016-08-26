@@ -3,88 +3,92 @@ const connectToMongo = require('./../../../lib/drivers/mongo/util/connect-mongo'
 
 const selectCreator = require('./creators');
 
-const resetPostgres = tables => {
-  return connectToPostgres()
-    .then(dropTables(tables))
-    .then(createTables(tables))
-    .catch(respondWithError);
-};
+const buildResetDatabase = driver => {
+  const resetDatabase = tables => {
+    const reset = resetChooser[driver];
+    return reset(tables);
+  };
 
-const resetDatabase = (driver, tables) => {
-  const reset = resetChooser[driver];
-  return reset(tables);
-};
+  const resetPostgres = tables => {
+    return connectToPostgres()
+      .then(dropTables(tables))
+      .then(createTables(tables))
+      .catch(respondWithError);
+  };
 
-const connectToPostgres = database => {
-  const client = new Client('postgres://postgres@localhost/test');
-  return new Promise((resolve, reject) => {
-    client.connect(err => {
-      if (err) return reject(err);
-      resolve({client});
+  const connectToPostgres = database => {
+    const client = new Client('postgres://postgres@localhost/test');
+    return new Promise((resolve, reject) => {
+      client.connect(err => {
+        if (err) return reject(err);
+        resolve({client});
+      });
     });
-  });
-};
+  };
 
-const dropTables = tables => db => {
-  const {client} = db;
-  const promises = tables.map(dropTable(client));
-  return Promise.all(promises).then(() => db);
-};
+  const dropTables = tables => db => {
+    const {client} = db;
+    const promises = tables.map(dropTable(client));
+    return Promise.all(promises).then(() => db);
+  };
 
-const dropTable = client => table => {
-  return new Promise((resolve, reject) => {
-    const query = `DROP TABLE IF EXISTS ${table}`;
-    client.query(query, err => err ? reject(err) : resolve());
-  });
-};
-
-const createTables = tables => db => {
-  const {client} = db;
-  const creators = tables.map((table) => selectCreator[table](client));
-  return Promise.all(creators)
-    .then(() => client.end())
-    .catch(err => {
-      console.log(err);
-      client.end();
-      throw err;
+  const dropTable = client => table => {
+    return new Promise((resolve, reject) => {
+      const query = `DROP TABLE IF EXISTS ${table}`;
+      client.query(query, err => err ? reject(err) : resolve());
     });
-};
+  };
 
-const respondWithError = err => {
-  console.log(err);
-  throw CantResetDatabase(err);
-};
+  const createTables = tables => db => {
+    const {client} = db;
+    const creators = tables.map((table) => selectCreator[table](client));
+    return Promise.all(creators)
+      .then(() => client.end())
+      .catch(err => {
+        console.log(err);
+        client.end();
+        throw err;
+      });
+  };
 
-const CantResetDatabase = cause => {
-  const error = new Error();
-  this.name = 'CANT_RESET_DATABASE';
-  this.message = `failed to reset the database: ${cause.message}`;
-  return error;
-};
+  const respondWithError = err => {
+    console.log(err);
+    throw CantResetDatabase(err);
+  };
 
-const resetMongo = collections => {
-  return connectToMongo()
-    .then(dropCollections(collections))
-    .catch(respondWithError);
-};
+  const CantResetDatabase = cause => {
+    const error = new Error();
+    this.name = 'CANT_RESET_DATABASE';
+    this.message = `failed to reset the database: ${cause.message}`;
+    return error;
+  };
 
-const dropCollections = collections => db => {
-  const promises = collections.map(dropCollection(db));
-  return Promise.all(promises).then(() => db);
-};
+  const resetMongo = collections => {
+    return connectToMongo()
+      .then(dropCollections(collections))
+      .catch(respondWithError);
+  };
 
-const dropCollection = db => collection => {
-  return new Promise((resolve, reject) => {
-    db.collection(collection).remove((error) => {
-      if (error) return reject(error);
-      resolve(db);
+  const dropCollections = collections => db => {
+    const promises = collections.map(dropCollection(db));
+    return Promise.all(promises).then(() => db);
+  };
+
+  const dropCollection = db => collection => {
+    return new Promise((resolve, reject) => {
+      db.collection(collection).remove((error) => {
+        if (error) return reject(error);
+        resolve(db);
+      });
     });
-  });
+  };
+
+  const resetChooser = {
+    postgres: resetPostgres,
+    mongo: resetMongo
+  };
+
+  return resetDatabase;
 };
 
-const resetChooser = {
-  postgres: resetPostgres,
-  mongo: resetMongo
-};
-
-module.exports = resetDatabase;
+module.exports = buildResetDatabase;

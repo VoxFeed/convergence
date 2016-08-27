@@ -165,6 +165,28 @@ describe('Postgres Transpiler', () => {
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
+
+      it('should create correct SQL with offset', () => {
+        const uql = {offset: 3};
+        const expected = 'SELECT * FROM persons OFFSET 3';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with limit and offset', () => {
+        const uql = {limit: 1, offset: 3};
+        const expected = 'SELECT * FROM persons LIMIT 1 OFFSET 3';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with where conditions, limit and offset', () => {
+        const uql = {where: {'job.title': 'Programmer'}, limit: 100, offset: 6};
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
+         'LIMIT 100 OFFSET 6';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
     });
 
     describe('Extended Model', () => {

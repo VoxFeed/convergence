@@ -94,7 +94,7 @@ describe('Mongo Crud', () => {
           .catch(done);
       });
 
-      it.skip('should return find correct record', done => {
+      it('should return find correct record', done => {
         crud.findOne({where: {name: 'Jon', ssn: '23534564356'}})
           .then(employee => {
             expect(employee.name).to.be.equal('Jon');

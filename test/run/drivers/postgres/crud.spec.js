@@ -87,7 +87,7 @@ describe('Postgres Crud', () => {
           .catch(done);
       });
 
-      it('returns error with unkown field', done => {
+      it('returns error with unknown field', done => {
         crud.insert({unknown: 'Field'})
           .then(unexpectedData)
           .catch(err => expect(err.name).to.be.equal(BAD_INPUT))

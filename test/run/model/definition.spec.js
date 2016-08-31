@@ -108,6 +108,19 @@ describe('Model', () => {
     });
   });
 
+  describe('getSchemaFields', () => {
+    const model = require('test/test-helpers/build-single-table-schema')(engine);
+
+    it('should get correct fields from the schema', () => {
+      const schemaFields = model.getSchemaFields();
+      const expectedFields = [
+        'id', 'name', 'last_name', 'age', 'tracked',
+        'job', 'rating', 'created_at'
+      ];
+      expect(schemaFields).to.be.deep.equals(expectedFields);
+    });
+  });
+
   describe('unique', () => {
     const buildModel = require('test/test-helpers/build-single-table-schema');
 

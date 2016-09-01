@@ -35,21 +35,21 @@ describe('Mongo Transpiler', () => {
 
       it('should create correct mongo query with two conditions', () => {
         const uql = {where: {name: 'Jon', lastName: 'Doe'}};
-        const expected = {name: 'Jon', lastName: 'Doe'};
+        const expected = {name: 'Jon', last_name: 'Doe'};
         const actual = transpiler.select(uql).query;
         expect(isEqual(actual, expected)).to.be.true;
       });
 
       it('should create correct mongo query with three conditions', () => {
         const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
-        const expected = {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2};
+        const expected = {name: 'Jon', last_name: 'Doe', age: 23, rating: 5.2};
         const actual = transpiler.select(uql).query;
         expect(isEqual(actual, expected)).to.be.true;
       });
 
       it('should create correct mongo query with bad values', () => {
         const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
-        const expected = {name: 123, lastName: null, age: null, rating: null};
+        const expected = {name: 123, last_name: null, age: null, rating: null};
         const actual = transpiler.select(uql).query;
         expect(isEqual(actual, expected)).to.be.true;
       });
@@ -58,7 +58,7 @@ describe('Mongo Transpiler', () => {
         const uql = { where: { createdAt: {gte: new Date(startDate), lt: new Date(endDate)} } };
         const actual = transpiler.select(uql).query;
         const expected = {
-          createdAt: {
+          created_at: {
             $gte: new Date(startDate),
             $lt: new Date(endDate)
           }
@@ -75,9 +75,9 @@ describe('Mongo Transpiler', () => {
           }
         };
         const uql = {where: Object.assign({}, regularConds, dateRange)};
-        const expectedConds = {name: 'Jon', lastName: 'Doe', age: 23};
+        const expectedConds = {name: 'Jon', last_name: 'Doe', age: 23};
         const expectedDateRange = {
-          createdAt: {
+          created_at: {
             $gte: new Date(startDate),
             $lt: new Date(endDate)
           }
@@ -89,21 +89,21 @@ describe('Mongo Transpiler', () => {
 
       it('should create correct MongoQuery with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = {$or: [{name: 'Jon'}, {lastName: 'Doe'}]};
+        const expected = {$or: [{name: 'Jon'}, {last_name: 'Doe'}]};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery with explicit and operator', () => {
         const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = {$and: [{name: 'Jon'}, {lastName: 'Doe'}]};
+        const expected = {$and: [{name: 'Jon'}, {last_name: 'Doe'}]};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery with a single lt operator', () => {
         const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
-        const expected = {tracked: true, createdAt: {$lt: new Date(startDate)}};
+        const expected = {tracked: true, created_at: {$lt: new Date(startDate)}};
         const actual = transpiler.select(uql).query;
         expect(actual).to.be.deep.equal(expected);
       });
@@ -124,7 +124,7 @@ describe('Mongo Transpiler', () => {
 
       it('should create correct MongoQuery with multiple order conditions', () => {
         const uql = {order: {age: 'ASC', lastName: 'DESC'}};
-        const expected = {query: {}, sort: {age: 1, lastName: -1}};
+        const expected = {query: {}, sort: {age: 1, last_name: -1}};
         const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
@@ -152,78 +152,92 @@ describe('Mongo Transpiler', () => {
 
       it('should return empty object if there are no query conditions', () => {
         const uql = {};
-        const expected = {parent: {}, extended: {}};
-        const actual = transpiler.select(uql).query;
+        const expected = {parent: {query: {}, sort: {}}, extended: {query: {}, sort: {}}};
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equals(expected);
       });
 
       it('should create correct mongo query with one condition', () => {
         const uql = {where: {name: 'Jon'}};
-        const expected = {parent: {name: 'Jon'}, extended: {}};
-        const actual = transpiler.select(uql).query;
+        const expected = {parent: {query: {}, sort: {}}, extended: {query: {name: 'Jon'}, sort: {}}};
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equals(expected);
       });
 
       it('should create correct mongo query with two conditions', () => {
         const uql = {where: {name: 'Jon', lastName: 'Doe'}};
-        const expected = {parent: {name: 'Jon', lastName: 'Doe'}, extended: {}};
-        const actual = transpiler.select(uql).query;
+        const expected = {parent: {query: {}, sort: {}}, extended: {query: {name: 'Jon', last_name: 'Doe'}, sort: {}}};
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equals(expected);
       });
 
       it('should create correct mongo query with a date range condition', () => {
         const uql = { where: { createdAt: {gte: new Date(startDate), lt: new Date(endDate)} } };
-        const actual = transpiler.select(uql).query;
+        const actual = transpiler.select(uql);
         const expected = {
-          parent: {
-            createdAt: {
-              $gte: new Date(startDate),
-              $lt: new Date(endDate)
-            }
-          },
-          extended: {}
+          parent: {query: {}, sort: {}},
+          extended: {
+            query: {
+              created_at: {
+                $gte: new Date(startDate),
+                $lt: new Date(endDate)
+              }
+            }, sort: {}
+          }
         };
         expect(actual).to.be.deep.equals(expected);
       });
 
       it('should create correct MongoQuery with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = {parent: {$or: [{name: 'Jon'}, {lastName: 'Doe'}]}, extended: {}};
-        const actual = transpiler.select(uql).query;
+        const expected = {
+          parent: {query: {}, sort: {}},
+          extended: {query: {$or: [{name: 'Jon'}, {last_name: 'Doe'}]}, sort: {}}
+        };
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery with explicit and operator', () => {
         const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = {parent: {$and: [{name: 'Jon'}, {lastName: 'Doe'}]}, extended: {}};
-        const actual = transpiler.select(uql).query;
+        const expected = {parent: {query: {}, sort: {}}, extended: {query: {$and: [{name: 'Jon'}, {last_name: 'Doe'}]}, sort: {}}};
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery with a single lt operator', () => {
         const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
-        const expected = {parent: {tracked: true, createdAt: {$lt: new Date(startDate)}}, extended: {}};
-        const actual = transpiler.select(uql).query;
+        const expected = {
+          parent: {query: {}, sort: {}},
+          extended: {query: {tracked: true, created_at: {$lt: new Date(startDate)}}, sort: {}}
+        };
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery for single json inner query', () => {
         const uql = {where: {'job.title': 'Programmer'}};
-        const expected = {'job.title': 'Programmer'};
-        const actual = transpiler.select(uql).query;
+        const expected = {
+          parent: {query: {}, sort: {}},
+          extended: {query: {'job.title': 'Programmer'}, sort: {}}
+        };
+        const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery with order and single field to order', () => {
         const uql = {order: {age: 'ASC'}};
-        const expected = {query: {}, sort: {age: 1}};
+        const expected = {parent: {query: {}, sort: {}}, extended: {query: {}, sort: {age: 1}}};
         const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
 
       it('should create correct MongoQuery with multiple order conditions', () => {
-        const uql = {order: {age: 'ASC', lastName: 'DESC'}};
-        const expected = {query: {}, sort: {age: 1, lastName: -1}};
+        const uql = {order: {age: 'ASC', ssn: 'DESC'}};
+        const expected = {
+          parent: {query: {}, sort: {ssn: -1}},
+          extended: {query: {}, sort: {age: 1}}
+        };
         const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });

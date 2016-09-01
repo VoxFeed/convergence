@@ -95,18 +95,42 @@ describe('Mongo Crud', () => {
       });
 
       it('should return find correct record', done => {
-        crud.findOne({where: {name: 'Jon', ssn: '23534564356'}})
+        crud.findOne({where: {name: 'Alberto', ssn: '22657678456'}})
           .then(employee => {
-            expect(employee.name).to.be.equal('Jon');
-            expect(employee.ssn).to.be.equal('23534564356');
+            expect(employee.name).to.be.equal('Alberto');
+            expect(employee.ssn).to.be.equal('22657678456');
           })
           .then(() => done())
           .catch(done);
       });
 
-      it('should not return error if operators are sent', done => {
-        crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+      it('should return find correct record with operator or', done => {
+        crud.findOne({where: {name: 'Alberto', ssn: '22657678456'}})
+          .then(employee => {
+            expect(employee.name).to.be.equal('Alberto');
+            expect(employee.ssn).to.be.equal('22657678456');
+          })
           .then(() => done())
+          .catch(done);
+      });
+
+      it('should return with AND operator', done => {
+        crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+          .then(person => {
+            expect(person.name).to.be.equal('Jon');
+            expect(person.ssn).to.be.equal('23534564356');
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should return with OR operator', done => {
+        crud.findOne({where: {or: [{name: 'LEL'}, {lastName: 'Doe'}]}})
+          .then(person => {
+            expect(person.name).to.be.equal('Jon');
+            expect(person.ssn).to.be.equal('23534564356');
+            done();
+          })
           .catch(done);
       });
     });
@@ -451,7 +475,7 @@ describe('Mongo Crud', () => {
         });
         extended.extend(model, 'personId');
 
-        crud = model;
+        crud = extended;
         resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())

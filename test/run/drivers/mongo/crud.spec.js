@@ -631,7 +631,7 @@ describe('Mongo Crud', () => {
     });
   });
 
-  describe.skip('Remove', () => {
+  describe('Remove', () => {
     beforeEach(() => {
       model = require('test/test-helpers/build-single-table-schema')(engine);
     });
@@ -685,7 +685,7 @@ describe('Mongo Crud', () => {
       });
     });
 
-    describe('Extended Model', () => {
+    describe.skip('Extended Model', () => {
       let crud;
 
       beforeEach(done => {

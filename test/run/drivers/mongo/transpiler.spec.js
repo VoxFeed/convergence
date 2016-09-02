@@ -492,11 +492,16 @@ describe('Mongo Transpiler', () => {
   });
 
   describe('Remove', () => {
+    let model;
+    beforeEach(() => {
+      model = require('test/test-helpers/build-single-table-schema')(engine);
+    });
+
     describe('Single Model', () => {
       let transpiler;
 
       beforeEach(() => {
-        transpiler = MongoTranspiler();
+        transpiler = MongoTranspiler(model);
       });
 
       it('should return correct sql if no where clause is sent', () => {

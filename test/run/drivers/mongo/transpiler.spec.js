@@ -390,9 +390,11 @@ describe('Mongo Transpiler', () => {
     describe('Update', () => {
       describe('Simple Model', () => {
         let transpiler;
+        let model;
 
         beforeEach(() => {
-          transpiler = MongoTranspiler();
+          model = require('test/test-helpers/build-single-table-schema')(engine);
+          transpiler = MongoTranspiler(model);
         });
 
         it('should create update mongo query with one field', () => {
@@ -490,11 +492,16 @@ describe('Mongo Transpiler', () => {
   });
 
   describe('Remove', () => {
+    let model;
+    beforeEach(() => {
+      model = require('test/test-helpers/build-single-table-schema')(engine);
+    });
+
     describe('Single Model', () => {
       let transpiler;
 
       beforeEach(() => {
-        transpiler = MongoTranspiler();
+        transpiler = MongoTranspiler(model);
       });
 
       it('should return correct sql if no where clause is sent', () => {

@@ -1,6 +1,7 @@
 const omit = require('lodash/omit');
 
 const unexpectedData = require('test/test-helpers/unexpected-data');
+const Crud = require('lib/model/crud');
 const {mongo} = require('lib/engines');
 const {defineModel, types} = require('lib/model/definition');
 const engine = mongo();
@@ -95,18 +96,42 @@ describe('Mongo Crud', () => {
       });
 
       it('should return find correct record', done => {
-        crud.findOne({where: {name: 'Jon', ssn: '23534564356'}})
+        crud.findOne({where: {name: 'Alberto', ssn: '22657678456'}})
           .then(employee => {
-            expect(employee.name).to.be.equal('Jon');
-            expect(employee.ssn).to.be.equal('23534564356');
+            expect(employee.name).to.be.equal('Alberto');
+            expect(employee.ssn).to.be.equal('22657678456');
           })
           .then(() => done())
           .catch(done);
       });
 
-      it('should not return error if operators are sent', done => {
-        crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+      it('should return find correct record with operator or', done => {
+        crud.findOne({where: {name: 'Alberto', ssn: '22657678456'}})
+          .then(employee => {
+            expect(employee.name).to.be.equal('Alberto');
+            expect(employee.ssn).to.be.equal('22657678456');
+          })
           .then(() => done())
+          .catch(done);
+      });
+
+      it('should return with AND operator', done => {
+        crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+          .then(person => {
+            expect(person.name).to.be.equal('Jon');
+            expect(person.ssn).to.be.equal('23534564356');
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should return with OR operator', done => {
+        crud.findOne({where: {or: [{name: 'LEL'}, {lastName: 'Doe'}]}})
+          .then(person => {
+            expect(person.name).to.be.equal('Jon');
+            expect(person.ssn).to.be.equal('23534564356');
+            done();
+          })
           .catch(done);
       });
     });
@@ -115,48 +140,142 @@ describe('Mongo Crud', () => {
   describe('Find', () => {
     let crud;
 
-    beforeEach(done => {
-      model = require('test/test-helpers/build-single-table-schema')(engine);
-      crud = model;
+    describe('Single Model', () => {
+      beforeEach(done => {
+        model = require('test/test-helpers/build-single-table-schema')(engine);
+        crud = model;
 
-      resetDatabase(['persons'])
-        .then(() => loadFixtures({persons: crud}))
-        .then(() => done())
-        .catch(done);
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return matching records', done => {
+        const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+        const id3 = '97392189-482b-410f-9581-4f5032b18e96';
+        const query = {where: {or: [{id: id1}, {id: id3}]}};
+        crud.find(query)
+          .then(persons => {
+            const actual = [id1, id3].join();
+            const expected = persons.map(p => p.id).sort().join();
+            expect(actual).to.be.equal(expected);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should find no record', done => {
+        crud.find({where: {name: 'Jon', lastName: 'Nope'}})
+          .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return error if unknown fields are sent', done => {
+        crud.find({where: {unknown: 'field'}})
+          .then(data => unexpectedData(data || {}))
+          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+          .then(() => done());
+      });
+
+      it('should not return error if operators are sent', done => {
+        crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
+          .then(() => done())
+          .catch(done);
+      });
     });
 
-    it('should return matching records', done => {
-      const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
-      const id3 = '97392189-482b-410f-9581-4f5032b18e96';
-      const query = {where: {or: [{id: id1}, {id: id3}]}};
-      crud.find(query)
-        .then(persons => {
-          const actual = [id1, id3].join();
-          const expected = persons.map(p => p.id).sort().join();
-          expect(actual).to.be.equal(expected);
-        })
-        .then(() => done())
-        .catch(done);
-    });
+    describe('Extended Model', () => {
+      let crud;
 
-    it('should find no record', done => {
-      crud.find({where: {name: 'Jon', lastName: 'Nope'}})
-        .then(persons => expect(persons.length).to.be.equal(0))
-        .then(() => done())
-        .catch(done);
-    });
+      const _validateFullEmployee = e => {
+        expect(e.id).to.exist;
+        expect(e.personId).to.exist;
+        expect(e.schedule).to.exist;
+        expect(e.entryDate).to.exist;
+        expect(e.ssn).to.exist;
+        expect(e.name).to.exist;
+        expect(e.lastName).to.exist;
+        expect(e.age).to.exist;
+        expect(e.tracked).to.exist;
+        expect(e.rating).to.exist;
+        expect(e.job).to.exist;
+        expect(e.createdAt).to.exist;
+      };
 
-    it('should return error if unknown fields are sent', done => {
-      crud.find({where: {unknown: 'field'}})
-        .then(data => unexpectedData(data || {}))
-        .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
-        .then(() => done());
-    });
+      beforeEach((done) => {
+        const extended = defineModel({
+          collection: 'employees',
+          engine,
+          definition: {
+            personId: types.FOREIGN_KEY,
+            schedule: types.STRING,
+            entryDate: types.DATE,
+            ssn: types.STRING
+          }
+        });
+        extended.extend(model, 'personId');
 
-    it('should not return error if operators are sent', done => {
-      crud.find({where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}})
-        .then(() => done())
-        .catch(done);
+        crud = extended;
+        resetDatabase(['persons', 'employees'])
+          .then(() => loadFixtures({fullEmployee: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('returns error with unkown field', done => {
+        crud.find({unknown: 'Field'})
+          .then(unexpectedData)
+          .catch(err => expect(err.name).to.be.equal(BAD_INPUT))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return all the full employees', done => {
+        crud.find({where: {}})
+          .then(employees => employees.map(_validateFullEmployee))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return only one employee', done => {
+        crud.find({where: {ssn: '2876786786768'}})
+          .then(employees => {
+            expect(employees.length).to.be.equal(1);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return find correct record with operator or', done => {
+        crud.find({where: {or: [{name: 'Alberto'}, {lastName: 'Doe'}]}})
+          .then(employees => {
+            expect(employees.length).to.be.equal(2);
+          })
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('should return with AND operator', done => {
+        crud.findOne({where: {and: [{name: 'Jon'}, {ssn: '23534564356'}]}})
+          .then(person => {
+            expect(person.name).to.be.equal('Jon');
+            expect(person.ssn).to.be.equal('23534564356');
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should return with OR operator', done => {
+        crud.findOne({where: {or: [{name: 'LEL'}, {lastName: 'Doe'}]}})
+          .then(person => {
+            expect(person.name).to.be.equal('Jon');
+            expect(person.ssn).to.be.equal('23534564356');
+            done();
+          })
+          .catch(done);
+      });
     });
   });
 
@@ -232,7 +351,7 @@ describe('Mongo Crud', () => {
       });
 
       it('should create record', done => {
-        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+        let id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
         crud.insert({id, name: 'Jon'})
           .then(person => {
             const expected = 'Jon';
@@ -438,7 +557,6 @@ describe('Mongo Crud', () => {
       let crud;
 
       beforeEach(done => {
-        model = require('test/test-helpers/build-single-table-schema')(engine);
         const extended = defineModel({
           collection: 'employees',
           engine,
@@ -451,7 +569,7 @@ describe('Mongo Crud', () => {
         });
         extended.extend(model, 'personId');
 
-        crud = model;
+        crud = extended;
         resetDatabase(['persons', 'employees'])
           .then(() => loadFixtures({fullEmployee: crud}))
           .then(() => done())
@@ -563,6 +681,261 @@ describe('Mongo Crud', () => {
         crud.remove(query)
           .then(() => crud.find(query))
           .then(persons => expect(persons.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+    });
+
+    describe('Extended Model', () => {
+      let crud;
+
+      beforeEach(done => {
+        const extended = defineModel({
+          collection: 'employees',
+          engine,
+          definition: {
+            personId: types.FOREIGN_KEY,
+            schedule: types.STRING,
+            entryDate: types.DATE,
+            ssn: types.STRING
+          }
+        });
+        extended.extend(model, 'personId');
+
+        crud = extended;
+        resetDatabase(['persons', 'employees'])
+          .then(() => loadFixtures({fullEmployee: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('removes both records with query in both tables', done => {
+        const query = {where: {name: 'Jon', ssn: '23534564356'}};
+        crud.find(query)
+          .then(employees => expect(employees.length).to.be.equal(1))
+          .then(() => crud.remove(query))
+          .then(() => crud.find(query))
+          .then(employees => expect(employees.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('removes both records with just the id', done => {
+        const id = 'f8769847-a272-42fc-a09a-1f27d5b58176';
+        const query = {where: {id}};
+        crud.find(query)
+          .then(employees => expect(employees.length).to.be.equal(1))
+          .then(() => crud.remove(query))
+          .then(() => crud.find(query))
+          .then(employees => expect(employees.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('removes all records with no query', done => {
+        const query = {where: {}};
+        crud.find(query)
+          .then(employees => expect(employees.length).to.be.equal(6))
+          .then(() => crud.remove(query))
+          .then(() => crud.find(query))
+          .then(employees => expect(employees.length).to.be.equal(0))
+          .then(() => done())
+          .catch(done);
+      });
+    });
+  });
+
+  describe('Upsert', () => {
+    describe('Single Model', () => {
+      let crud;
+
+      beforeEach(done => {
+        model = require('test/test-helpers/build-single-table-schema')(engine);
+        crud = model;
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: crud}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      describe('Single Index', () => {
+        it('returns promise', () => {
+          const data = {name: 'Jon'};
+          const actual = crud.upsert(data, {where: {}}).constructor.name;
+          const expected = 'Promise';
+          expect(actual).to.be.equal(expected);
+        });
+
+        it('inserts when no conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz',
+            rating: 10,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+            expect(person.id).to.be.equal(id);
+          };
+          crud.upsert(data, {where: {id}})
+            .then(() => model.findOne({where: {id}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+
+        it('updates record when there is conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz',
+            rating: 1,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+          };
+
+          model.upsert(data, {where: {rating: 1}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id: id1}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+
+        it('uses primary key if no unique indexes present', done => {
+          const noIndexesModel = defineModel({
+            collection: 'persons',
+            engine,
+            definition: {
+              id: types.PRIMARY_KEY,
+              name: types.STRING,
+              lastName: types.STRING
+            }
+          });
+          noIndexesModel.setPrimaryKey('id');
+          const id = '672ee20a-77a0-4670-ac19-17c73e588774';
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+          };
+          const {upsert, findOne} = Crud(engine, noIndexesModel);
+          upsert({
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz'
+          })
+          .then(expectCorrectPerson)
+          .then(() => findOne({where: {id}}))
+          .then(expectCorrectPerson)
+          .then(() => done())
+          .catch(done);
+        });
+      });
+
+      describe('Combined Index', () => {
+        beforeEach(() => {
+          const schema = {
+            id: types.UUID,
+            name: types.STRING,
+            lastName: types.STRING,
+            rating: types.INTEGER,
+            job: types.JSON,
+            age: types.INTEGER,
+            tracked: types.BOOLEAN,
+            createdAt: types.DATE
+          };
+          model = defineModel({
+            collection: 'persons',
+            engine,
+            definition: schema
+          });
+
+          model.setPrimaryKey('id');
+          model.unique({combined: ['lastName', 'rating']});
+        });
+
+        it('inserts when no conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Ortiz',
+            rating: 10,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Ortiz');
+          };
+          crud.upsert(data, {where: {id}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+
+        it('updates record when there is conflict', done => {
+          const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+          const id1 = '672ee20a-77a0-4670-ac19-17c73e588774';
+          const data = {
+            id,
+            name: 'Gus',
+            lastName: 'Doe',
+            rating: 1,
+            job: {title: 'Programmer'}
+          };
+          const expectCorrectPerson = person => {
+            expect(person.name).to.be.equal('Gus');
+            expect(person.lastName).to.be.equal('Doe');
+          };
+
+          crud.upsert(data, {where: {rating: 1, lastName: 'Doe'}})
+            .then(expectCorrectPerson)
+            .then(() => model.findOne({where: {id: id1}}))
+            .then(expectCorrectPerson)
+            .then(() => done())
+            .catch(done);
+        });
+      });
+    });
+
+    describe('Extended Model', () => {
+      beforeEach(done => {
+        model = require('test/test-helpers/build-single-table-schema')(engine);
+        resetDatabase(['persons'])
+          .then(() => loadFixtures({persons: model}))
+          .then(() => done())
+          .catch(done);
+      });
+
+      it('inserts when no conflict in both tables', done => {
+        const id = 'dab84df8-37dc-4e37-b17d-d451e9d68f77';
+        const data = {
+          id,
+          name: 'Gus',
+          lastName: 'Ortiz',
+          rating: 10,
+          job: {title: 'Programmer'}
+        };
+        const expectCorrectPerson = person => {
+          expect(person.name).to.be.equal('Gus');
+          expect(person.lastName).to.be.equal('Ortiz');
+          expect(person.rating).to.be.equal(10);
+          expect(person.job).to.have.property('title', 'Programmer');
+        };
+        model.upsert(data, {where: {id}})
+          .then(expectCorrectPerson)
+          .then(() => model.findOne({where: {id}}))
+          .then(expectCorrectPerson)
           .then(() => done())
           .catch(done);
       });

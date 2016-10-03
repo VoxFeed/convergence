@@ -113,6 +113,27 @@ describe('Postgres Transpiler', () => {
         expect(actual).to.be.equal(expected);
       });
 
+      it('should create correct SQL with regex and insensitive case', () => {
+        const uql = {where: {'job.title': {regex: 'gram', options: 'i'}}};
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\' ILIKE \'%gram%\'';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should find value with regex with sensitive case', () => {
+        const uql = {where: {'job.title': {regex: 'gRam'}}};
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\' LIKE \'%gRam%\'';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should find value with regex with sensitive case at the start', () => {
+        const uql = {where: {'job.title': {regex: 'Progr'}}};
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\' LIKE \'%Progr%\'';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
       it('should create correct SQL with a single lt operator', () => {
         const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
         const expected = 'SELECT * FROM persons WHERE persons.tracked=true AND ' +

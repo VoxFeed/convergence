@@ -176,6 +176,40 @@ describe('Postgres Crud', () => {
         .catch(done);
     });
 
+    it('should find value with regex with insensitive case', (done) => {
+      const sql = {where: {'job.title': {regex: 'gram', options: 'i'}}};
+      const expected = [2, 4, 5, 6];
+      crud.find(sql)
+        .then(data => {
+          const actual = data.map(p => p.rating).sort();
+          expect(actual).to.be.deep.equal(expected);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should find value with regex with sensitive case', (done) => {
+      const sql = {where: {'job.title': {regex: 'gRam'}}};
+      crud.find(sql)
+        .then(data => {
+          expect(data).to.be.empty;
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should find value with regex with sensitive case at the start', (done) => {
+      const sql = {where: {'job.title': {regex: 'Progr'}}};
+      const expected = [2, 4, 5, 6];
+      crud.find(sql)
+        .then(data => {
+          const actual = data.map(p => p.rating).sort();
+          expect(actual).to.be.deep.equal(expected);
+          done();
+        })
+        .catch(done);
+    });
+
     it('should find no record', done => {
       crud.find({where: {name: 'Jon', lastName: 'Nope'}})
         .then(persons => expect(persons.length).to.be.equal(0))

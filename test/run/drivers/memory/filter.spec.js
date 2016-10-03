@@ -192,6 +192,27 @@ describe('Memory Filter', () => {
     expect(actual).to.be.equal(expected);
   });
 
+  it('should find value with regex with insensitive case', () => {
+    const uql = {where: {'job.title': {regex: 'gram', options: 'i'}}};
+    const expected = [2, 4, 5, 6];
+    const actual = filter(uql).map(p => p.rating);
+    expect(actual).to.be.deep.equal(expected);
+  });
+
+  it('should find value with regex with sensitive case', () => {
+    const uql = {where: {'job.title': {regex: 'gRam'}}};
+    const expected = [];
+    const actual = filter(uql).map(p => p.rating);
+    expect(actual).to.be.deep.equal(expected);
+  });
+
+  it('should find value with regex with sensitive case at the start', () => {
+    const uql = {where: {'job.title': {regex: 'Progr'}}};
+    const expected = [2, 4, 5, 6];
+    const actual = filter(uql).map(p => p.rating);
+    expect(actual).to.be.deep.equal(expected);
+  });
+
   it('should limit the result to a limit of n', () => {
     const uql = {limit: 3};
     const expected = [1, 2, 3].join();

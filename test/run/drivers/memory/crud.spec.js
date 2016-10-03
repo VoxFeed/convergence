@@ -173,6 +173,40 @@ describe('Memory Crud', () => {
           })
           .catch(done);
       });
+
+      it('should find value with regex with insensitive case', (done) => {
+        const uql = {where: {'job.title': {regex: 'gram', options: 'i'}}};
+        const expected = [2, 4, 5, 6];
+        personsCrud.find(uql)
+          .then(data => {
+            const actual = data.map(p => p.rating);
+            expect(actual).to.be.deep.equal(expected);
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should find value with regex with sensitive case', (done) => {
+        const uql = {where: {'job.title': {regex: 'gRam'}}};
+        personsCrud.find(uql)
+          .then(data => {
+            expect(data).to.be.empty;
+            done();
+          })
+          .catch(done);
+      });
+
+      it('should find value with regex with sensitive case at the start', (done) => {
+        const uql = {where: {'job.title': {regex: 'Progr'}}};
+        const expected = [2, 4, 5, 6];
+        personsCrud.find(uql)
+          .then(data => {
+            const actual = data.map(p => p.rating);
+            expect(actual).to.be.deep.equal(expected);
+            done();
+          })
+          .catch(done);
+      });
     });
 
     describe('Extended Model', () => {

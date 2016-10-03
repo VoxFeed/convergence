@@ -121,6 +121,27 @@ describe('Mongo Transpiler', () => {
         const actual = transpiler.select(uql);
         expect(actual).to.be.deep.equal(expected);
       });
+
+      it('should find value with regex with insensitive case', () => {
+        const uql = {where: {'job.title': {regex: 'gram', options: 'i'}}};
+        const expected = {'job.title': {$regex: '^gram', $options: 'i'}};
+        const {query: actual} = transpiler.select(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should find value with regex with sensitive case', () => {
+        const uql = {where: {'job.title': {regex: 'gRam'}}};
+        const expected = {'job.title': {$regex: '^gRam'}};
+        const {query: actual} = transpiler.select(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
+
+      it('should find value with regex with sensitive case at the start', () => {
+        const uql = {where: {'job.title': {regex: 'Progr'}}};
+        const expected = {'job.title': {$regex: '^Progr'}};
+        const {query: actual} = transpiler.select(uql);
+        expect(actual).to.be.deep.equal(expected);
+      });
     });
   });
 

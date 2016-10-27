@@ -787,8 +787,7 @@ describe('Postgres Transpiler', () => {
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\' AND ' +
-        'employees.ssn=\'123123\'';
+        'WHERE persons.name=\'Jon\' AND employees.ssn=\'123123\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -803,8 +802,7 @@ describe('Postgres Transpiler', () => {
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\' AND ' +
-        'employees.ssn=\'123123\'';
+        'WHERE persons.id=\'1\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -820,8 +818,7 @@ describe('Postgres Transpiler', () => {
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\' AND ' +
-        'employees.ssn=\'123123\'';
+        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -836,8 +833,7 @@ describe('Postgres Transpiler', () => {
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.job::jsonb @> \'{"title":"QA"}\'::jsonb AND ' +
-        'employees.ssn=\'123123\'';
+        'WHERE persons.id=\'1\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -853,8 +849,7 @@ describe('Postgres Transpiler', () => {
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\' AND ' +
-        'employees.ssn=\'123123\'';
+        'WHERE persons.name=\'Jon\' OR persons.last_name=\'Doe\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });

@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VoxFeed/converge.git"
+    "url": "https://github.com/VoxFeed/convergence.git"
   },
   "author": "VoxFeed",
   "engines": {

@@ -59,6 +59,15 @@ describe('Mongo Transpiler', () => {
         expect(actual).to.be.deep.equals(expected);
       });
 
+      it('should create correct mongo query with a null date', () => {
+        const uql = { where: { createdAt: null } };
+        const actual = transpiler.select(uql).query;
+        const expected = {
+          createdAt: null
+        };
+        expect(actual).to.be.deep.equals(expected);
+      });
+
       it('should create correct mongo query with three regular conditions and a date range condition', () => {
         const regularConds = {name: 'Jon', lastName: 'Doe', age: 23};
         const dateRange = {

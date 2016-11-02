@@ -9,7 +9,7 @@ const persons = [
     tracked: false,
     rating: 1,
     job: {title: 'Aprentice', companyName: 'VoxFeed'},
-    createdAt: new Date('2016-01-18T00:00:00.000Z')
+    createdAt: null
   },
   {
     id: 'f8769847-a272-42fc-a09a-1f27d5b58176',

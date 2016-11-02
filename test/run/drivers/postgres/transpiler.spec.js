@@ -331,6 +331,18 @@ describe('Postgres Transpiler', () => {
       expect(actual).to.be.equal(expected);
     });
 
+    it('should create correct SQL with a null date', () => {
+      const uql = {
+        where: {
+          createdAt: null
+        }
+      };
+      const actual = transpiler.count(uql);
+      const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
+        `persons.created_at=null`;
+      expect(actual).to.be.equal(expected);
+    });
+
     it('should create correct SQL with regular and date range conditions', () => {
       const regularConds = {name: 'Jon', lastName: 'Doe', age: 23};
       const dateRange = {

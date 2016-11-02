@@ -1,4 +1,10 @@
-# Converge
+# Convergence
+
+## Install
+
+```
+npm install --save convergence
+```
 
 ## First a little bit of dream code.
 
@@ -8,7 +14,7 @@ Lets declare an employee model, this gateway will define a typed schema and retu
 functions to operate on the underlying store such as find, findOne, update, insert, upsert.
 
 ```js
-const {types, defineModel, engines} = require('converge');
+const {types, defineModel, engines} = require('convergence');
 
 const store = {};
 const engine = engines.memory(store);
@@ -46,7 +52,7 @@ database engine seamlessly. Check this implementation.
 **models/employee.js**
 
 ```js
-const {types, defineModel} = require('converge');
+const {types, defineModel} = require('convergence');
 
 const collection = 'employees';
 
@@ -64,7 +70,7 @@ const EmployeeModel = engine => {
 
 **models/users.js**
 ```js
-const {types, defineModel} = require('converge');
+const {types, defineModel} = require('convergence');
 
 const collection = 'users';
 

@@ -3,10 +3,10 @@ const get = require('lodash/get');
 const first = require('lodash/first');
 
 const MemoryFilter = require('lib/drivers/memory/filter');
-const fixtures = require('test/data/fixtures/persons');
+const personsFixtures = require('test/data/fixtures/persons');
 const positionsFixtures = require('test/data/fixtures/positions');
 
-const store = {'persons': fixtures.map(clone), positions: positionsFixtures.map(clone)};
+const store = {persons: personsFixtures.map(clone), positions: positionsFixtures.map(clone)};
 const {memory} = require('lib/engines');
 const engine = memory(store);
 
@@ -65,9 +65,9 @@ describe('Memory Filter', () => {
   });
 
   it('should create correct conditions with three regular conditions and a date range condition', () => {
-    const startDate = new Date('2015-12-01T00:00:00.000Z');
+    const startDate = new Date('2015-10-01T00:00:00.000Z');
     const endDate = new Date('2016-01-18T00:00:00.000Z');
-    const regularConds = {name: 'Jon'};
+    const regularConds = {name: 'Jesus Agustin'};
     const dateRange = {
       createdAt: {
         gte: new Date(startDate),
@@ -75,6 +75,14 @@ describe('Memory Filter', () => {
       }
     };
     const uql = Object.assign({}, regularConds, dateRange);
+    const expected = [5].join();
+    const actual = filter({where: uql}).map(p => p.rating).sort().join();
+    expect(actual).to.be.equal(expected);
+  });
+
+  it('should create correct conditions with a null date', () => {
+    const regularConds = {name: 'Jon', createdAt: null};
+    const uql = Object.assign({}, regularConds);
     const expected = [1].join();
     const actual = filter({where: uql}).map(p => p.rating).sort().join();
     expect(actual).to.be.equal(expected);

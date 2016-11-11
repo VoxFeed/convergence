@@ -99,16 +99,16 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\' ' +
-          'OR persons.last_name=\'Doe\'';
+        const expected = 'SELECT * FROM persons WHERE (persons.name=\'Jon\' ' +
+          'OR persons.last_name=\'Doe\')';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with explicit and operator', () => {
         const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\' ' +
-          'AND persons.last_name=\'Doe\'';
+        const expected = 'SELECT * FROM persons WHERE (persons.name=\'Jon\' ' +
+          'AND persons.last_name=\'Doe\')';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -188,21 +188,21 @@ describe('Postgres Transpiler', () => {
       });
 
       it('should create correct SQL with offset', () => {
-        const uql = {offset: 3};
+        const uql = {skip: 3};
         const expected = 'SELECT * FROM persons OFFSET 3';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with limit and offset', () => {
-        const uql = {limit: 1, offset: 3};
+        const uql = {limit: 1, skip: 3};
         const expected = 'SELECT * FROM persons LIMIT 1 OFFSET 3';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with where conditions, limit and offset', () => {
-        const uql = {where: {'job.title': 'Programmer'}, limit: 100, offset: 6};
+        const uql = {where: {'job.title': 'Programmer'}, limit: 100, skip: 6};
         const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
          'LIMIT 100 OFFSET 6';
         const actual = transpiler.select(uql);
@@ -250,7 +250,7 @@ describe('Postgres Transpiler', () => {
         const query = {where: {or: [{name: 'Jon'}, {ssn: '23534564356'}]}};
         const expected = '' +
           'SELECT * FROM employees JOIN persons ON person_id=id ' +
-          'WHERE persons.name=\'Jon\' OR employees.ssn=\'23534564356\'';
+          'WHERE (persons.name=\'Jon\' OR employees.ssn=\'23534564356\')';
         const actual = transpiler.select(query);
         expect(actual).to.be.equal(expected);
       });
@@ -349,8 +349,8 @@ describe('Postgres Transpiler', () => {
 
     it('should create correct SQL with or operator', () => {
       const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name=\'Jon\' ' +
-        'OR persons.last_name=\'Doe\'';
+      const expected = 'SELECT COUNT(*) FROM persons WHERE (persons.name=\'Jon\' ' +
+        'OR persons.last_name=\'Doe\')';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -358,7 +358,7 @@ describe('Postgres Transpiler', () => {
     it('should create correct SQL with explicit and operator', () => {
       const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
       const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
-        'persons.name=\'Jon\' AND persons.last_name=\'Doe\'';
+        '(persons.name=\'Jon\' AND persons.last_name=\'Doe\')';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -844,12 +844,12 @@ describe('Postgres Transpiler', () => {
         const expected = '' +
         'WITH PARENT_RECORD as (' +
           'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.name=\'Luis\' OR persons.last_name=\'Argumedo\' ' +
+          'WHERE (persons.name=\'Luis\' OR persons.last_name=\'Argumedo\') ' +
           'AND persons.id=employees.person_id RETURNING id) ' +
         'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
           '(SELECT id FROM PARENT_RECORD); ' +
         'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' OR persons.last_name=\'Doe\'';
+        'WHERE (persons.name=\'Jon\' OR persons.last_name=\'Doe\')';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -896,8 +896,8 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' OR ' +
-         'persons.last_name=\'Doe\'';
+        const expected = 'DELETE FROM persons WHERE (persons.name=\'Jon\' OR ' +
+         'persons.last_name=\'Doe\')';
         const actual = transpiler.remove(uql);
         expect(actual).to.be.equal(expected);
       });

@@ -33,7 +33,14 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with one condition', () => {
         const uql = {where: {name: 'Jon'}};
-        const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\'';
+        const expected = 'SELECT * FROM persons WHERE persons.name = \'Jon\'';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL with one condition with null value', () => {
+        const uql = {where: {name: null}};
+        const expected = 'SELECT * FROM persons WHERE persons.name IS NULL';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -41,15 +48,15 @@ describe('Postgres Transpiler', () => {
       it('should create correct SQL with two conditions', () => {
         const uql = {where: {name: 'Jon', lastName: 'Doe'}};
         const expected = 'SELECT * FROM persons WHERE ' +
-          'persons.name=\'Jon\' AND persons.last_name=\'Doe\'';
+          'persons.name = \'Jon\' AND persons.last_name = \'Doe\'';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with three conditions', () => {
         const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
-        const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\' AND ' +
-          'persons.last_name=\'Doe\' AND persons.age=23 AND persons.rating=5.2';
+        const expected = 'SELECT * FROM persons WHERE persons.name = \'Jon\' AND ' +
+          'persons.last_name = \'Doe\' AND persons.age = 23 AND persons.rating = 5.2';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -63,8 +70,8 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with bad values', () => {
         const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
-        const expected = 'SELECT * FROM persons WHERE persons.name=\'123\' AND ' +
-          'persons.last_name=null AND persons.age=null AND persons.rating=null';
+        const expected = 'SELECT * FROM persons WHERE persons.name = \'123\' AND ' +
+          'persons.last_name IS NULL AND persons.age IS NULL AND persons.rating IS NULL';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -91,24 +98,24 @@ describe('Postgres Transpiler', () => {
         };
         const uql = {where: Object.assign({}, regularConds, dateRange)};
         const actual = transpiler.select(uql);
-        const expected = 'SELECT * FROM persons WHERE persons.name=\'Jon\' AND ' +
-          'persons.last_name=\'Doe\' AND persons.age=23 AND ' +
+        const expected = 'SELECT * FROM persons WHERE persons.name = \'Jon\' AND ' +
+          'persons.last_name = \'Doe\' AND persons.age = 23 AND ' +
           `persons.created_at >= \'${startDate}\' AND persons.created_at < '${endDate}'`;
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = 'SELECT * FROM persons WHERE (persons.name=\'Jon\' ' +
-          'OR persons.last_name=\'Doe\')';
+        const expected = 'SELECT * FROM persons WHERE (persons.name = \'Jon\' ' +
+          'OR persons.last_name = \'Doe\')';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with explicit and operator', () => {
         const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = 'SELECT * FROM persons WHERE (persons.name=\'Jon\' ' +
-          'AND persons.last_name=\'Doe\')';
+        const expected = 'SELECT * FROM persons WHERE (persons.name = \'Jon\' ' +
+          'AND persons.last_name = \'Doe\')';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -136,7 +143,7 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with a single lt operator', () => {
         const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
-        const expected = 'SELECT * FROM persons WHERE persons.tracked=true AND ' +
+        const expected = 'SELECT * FROM persons WHERE persons.tracked = true AND ' +
           `persons.created_at < '${startDate}'`;
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
@@ -145,7 +152,15 @@ describe('Postgres Transpiler', () => {
       it('should create correct SQL for single json inner query', () => {
         const uql = {where: {'job.title': 'Programmer'}};
         const expected = 'SELECT * FROM persons WHERE ' +
-          'persons.job->>\'title\'=\'Programmer\'';
+          'persons.job->>\'title\' = \'Programmer\'';
+        const actual = transpiler.select(uql);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('should create correct SQL for single json inner query and null value', () => {
+        const uql = {where: {'job.title': null}};
+        const expected = 'SELECT * FROM persons WHERE ' +
+          'persons.job->>\'title\' IS NULL';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -166,7 +181,7 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with where conditions and multiple order conditions', () => {
         const uql = {where: {'job.title': 'Programmer'}, order: {age: 'ASC', lastName: 'DESC'}};
-        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\' = \'Programmer\' ' +
          'ORDER BY persons.age ASC, persons.last_name DESC';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
@@ -181,7 +196,7 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with where conditions and limit', () => {
         const uql = {where: {'job.title': 'Programmer'}, limit: 100};
-        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\' = \'Programmer\' ' +
          'LIMIT 100';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
@@ -203,7 +218,7 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with where conditions, limit and offset', () => {
         const uql = {where: {'job.title': 'Programmer'}, limit: 100, skip: 6};
-        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\'=\'Programmer\' ' +
+        const expected = 'SELECT * FROM persons WHERE persons.job->>\'title\' = \'Programmer\' ' +
          'LIMIT 100 OFFSET 6';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
@@ -229,10 +244,10 @@ describe('Postgres Transpiler', () => {
       });
 
       it('creates sql with one field in each table', () => {
-        const query = {where: {name: 'Jon', ssn: '23534564356'}};
+        const query = {where: {name: 'Jon', ssn: null}};
         const expected = '' +
-          'SELECT * FROM employees JOIN persons ON person_id=id ' +
-          'WHERE persons.name=\'Jon\' AND employees.ssn=\'23534564356\'';
+          'SELECT * FROM employees JOIN persons ON person_id = id ' +
+          'WHERE persons.name = \'Jon\' AND employees.ssn IS NULL';
         const actual = transpiler.select(query);
         expect(actual).to.be.equal(expected);
       });
@@ -240,8 +255,8 @@ describe('Postgres Transpiler', () => {
       it('creates sql with one field in one table', () => {
         const query = {where: {id: '1'}};
         const expected = '' +
-          'SELECT * FROM employees JOIN persons ON person_id=id ' +
-          'WHERE persons.id=\'1\'';
+          'SELECT * FROM employees JOIN persons ON person_id = id ' +
+          'WHERE persons.id = \'1\'';
         const actual = transpiler.select(query);
         expect(actual).to.be.equal(expected);
       });
@@ -249,16 +264,25 @@ describe('Postgres Transpiler', () => {
       it('creates sql with explicit operator', () => {
         const query = {where: {or: [{name: 'Jon'}, {ssn: '23534564356'}]}};
         const expected = '' +
-          'SELECT * FROM employees JOIN persons ON person_id=id ' +
-          'WHERE (persons.name=\'Jon\' OR employees.ssn=\'23534564356\')';
+          'SELECT * FROM employees JOIN persons ON person_id = id ' +
+          'WHERE (persons.name = \'Jon\' OR employees.ssn = \'23534564356\')';
+        const actual = transpiler.select(query);
+        expect(actual).to.be.equal(expected);
+      });
+
+      it('creates sql with explicit operator and null value', () => {
+        const query = {where: {or: [{name: null}, {ssn: '23534564356'}]}};
+        const expected = '' +
+          'SELECT * FROM employees JOIN persons ON person_id = id ' +
+          'WHERE (persons.name IS NULL OR employees.ssn = \'23534564356\')';
         const actual = transpiler.select(query);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with where conditions and multiple order conditions', () => {
         const uql = {where: {'job.title': 'Programmer'}, order: {age: 'ASC', lastName: 'DESC'}};
-        const expected = 'SELECT * FROM employees JOIN persons ON person_id=id ' +
-          'WHERE persons.job->>\'title\'=\'Programmer\' ' +
+        const expected = 'SELECT * FROM employees JOIN persons ON person_id = id ' +
+          'WHERE persons.job->>\'title\' = \'Programmer\' ' +
           'ORDER BY persons.age ASC, persons.last_name DESC';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
@@ -266,8 +290,8 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with where conditions and limit', () => {
         const uql = {where: {'job.title': 'Programmer'}, limit: 100};
-        const expected = 'SELECT * FROM employees JOIN persons ON person_id=id ' +
-          'WHERE persons.job->>\'title\'=\'Programmer\' ' +
+        const expected = 'SELECT * FROM employees JOIN persons ON person_id = id ' +
+          'WHERE persons.job->>\'title\' = \'Programmer\' ' +
           'LIMIT 100';
         const actual = transpiler.select(uql);
         expect(actual).to.be.equal(expected);
@@ -290,31 +314,31 @@ describe('Postgres Transpiler', () => {
 
     it('should create correct SQL with one condition', () => {
       const uql = {where: {name: 'Jon'}};
-      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name=\'Jon\'';
+      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name = \'Jon\'';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
 
     it('should create correct SQL with two conditions', () => {
       const uql = {where: {name: 'Jon', lastName: 'Doe'}};
-      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name=\'Jon\' ' +
-        'AND persons.last_name=\'Doe\'';
+      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name = \'Jon\' ' +
+        'AND persons.last_name = \'Doe\'';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
 
     it('should create correct SQL with four conditions', () => {
       const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
-      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name=\'Jon\' AND ' +
-        'persons.last_name=\'Doe\' AND persons.age=23 AND persons.rating=5.2';
+      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name = \'Jon\' AND ' +
+        'persons.last_name = \'Doe\' AND persons.age = 23 AND persons.rating = 5.2';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
 
     it('should create correct SQL with bad values', () => {
       const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
-      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name=\'123\' AND ' +
-        'persons.last_name=null AND persons.age=null AND persons.rating=null';
+      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name = \'123\' AND ' +
+        'persons.last_name IS NULL AND persons.age IS NULL AND persons.rating IS NULL';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -339,7 +363,7 @@ describe('Postgres Transpiler', () => {
       };
       const actual = transpiler.count(uql);
       const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
-        `persons.created_at=null`;
+        'persons.created_at IS NULL';
       expect(actual).to.be.equal(expected);
     });
 
@@ -353,16 +377,16 @@ describe('Postgres Transpiler', () => {
       };
       const uql = {where: Object.assign({}, regularConds, dateRange)};
       const actual = transpiler.count(uql);
-      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name=\'Jon\' AND ' +
-        'persons.last_name=\'Doe\' AND persons.age=23 AND ' +
+      const expected = 'SELECT COUNT(*) FROM persons WHERE persons.name = \'Jon\' AND ' +
+        'persons.last_name = \'Doe\' AND persons.age = 23 AND ' +
         `persons.created_at >= \'${startDate}\' AND persons.created_at < '${endDate}'`;
       expect(actual).to.be.equal(expected);
     });
 
     it('should create correct SQL with or operator', () => {
       const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-      const expected = 'SELECT COUNT(*) FROM persons WHERE (persons.name=\'Jon\' ' +
-        'OR persons.last_name=\'Doe\')';
+      const expected = 'SELECT COUNT(*) FROM persons WHERE (persons.name = \'Jon\' ' +
+        'OR persons.last_name = \'Doe\')';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -370,7 +394,7 @@ describe('Postgres Transpiler', () => {
     it('should create correct SQL with explicit and operator', () => {
       const uql = {where: {and: [{name: 'Jon'}, {lastName: 'Doe'}]}};
       const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
-        '(persons.name=\'Jon\' AND persons.last_name=\'Doe\')';
+        '(persons.name = \'Jon\' AND persons.last_name = \'Doe\')';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -378,7 +402,7 @@ describe('Postgres Transpiler', () => {
     it('should create correct SQL with a single lt operator', () => {
       const uql = {where: {tracked: true, createdAt: {lt: new Date(startDate)}}};
       const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
-        `persons.tracked=true AND persons.created_at < '${startDate}'`;
+        `persons.tracked = true AND persons.created_at < '${startDate}'`;
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -386,7 +410,7 @@ describe('Postgres Transpiler', () => {
     it('should create correct SQL for single json inner query', () => {
       const uql = {where: {'job.title': 'Programmer'}};
       const expected = 'SELECT COUNT(*) FROM persons WHERE ' +
-        'persons.job->>\'title\'=\'Programmer\'';
+        'persons.job->>\'title\' = \'Programmer\'';
       const actual = transpiler.count(uql);
       expect(actual).to.be.equal(expected);
     });
@@ -461,7 +485,7 @@ describe('Postgres Transpiler', () => {
           'INSERT INTO persons (id, name) VALUES (\'1\', \'Jon\') RETURNING id) ' +
         'INSERT INTO employees (schedule, person_id) VALUES ' +
           '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\'';
         const actual = transpiler.insert(data);
         expect(actual).to.be.equal(expected);
       });
@@ -473,7 +497,7 @@ describe('Postgres Transpiler', () => {
           'INSERT INTO persons (id, name, last_name) VALUES (\'1\', \'Jon\', \'Doe\') RETURNING id) ' +
         'INSERT INTO employees (person_id) VALUES ' +
           '((SELECT id FROM NEW_PARENT_RECORD)); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\'';
         const actual = transpiler.insert(data);
         expect(actual).to.be.equal(expected);
       });
@@ -485,7 +509,7 @@ describe('Postgres Transpiler', () => {
           'INSERT INTO persons (id) VALUES (\'1\') RETURNING id) ' +
         'INSERT INTO employees (schedule, person_id) VALUES ' +
           '(\'9:00 - 6:00\', (SELECT id FROM NEW_PARENT_RECORD)); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\'';
         const actual = transpiler.insert(data);
         expect(actual).to.be.equal(expected);
       });
@@ -533,7 +557,7 @@ describe('Postgres Transpiler', () => {
           const data = {name: 'Jon', age: 25};
           const expected = 'INSERT INTO persons (name, age) ' +
             'VALUES (\'Jon\', 25) ON CONFLICT (age) DO UPDATE ' +
-            'SET name=\'Jon\', age=25 WHERE persons.age=25 ' +
+            'SET name = \'Jon\', age = 25 WHERE persons.age = 25 ' +
             'RETURNING *';
           const actual = upsert(data, {where: {age: 25}});
           expect(actual).to.be.equal(expected);
@@ -546,7 +570,7 @@ describe('Postgres Transpiler', () => {
           const data = {id: '1', name: 'Jon', age: 25};
           const expected = 'INSERT INTO persons (id, name, age) ' +
             'VALUES (\'1\', \'Jon\', 25) ON CONFLICT (age) DO UPDATE ' +
-            'SET name=\'Jon\', age=25 WHERE persons.age=25 ' +
+            'SET name = \'Jon\', age = 25 WHERE persons.age = 25 ' +
             'RETURNING *';
           const actual = upsert(data, {where: {age: 25}});
           expect(actual).to.be.equal(expected);
@@ -558,8 +582,8 @@ describe('Postgres Transpiler', () => {
           const data = {name: 'Jon', last_name: 'Doe', age: 25};
           const expected = 'INSERT INTO persons (name, last_name, age) ' +
             'VALUES (\'Jon\', \'Doe\', 25) ON CONFLICT (last_name, age) DO UPDATE ' +
-            'SET name=\'Jon\', last_name=\'Doe\', age=25 ' +
-            'WHERE persons.last_name=\'Doe\' RETURNING *';
+            'SET name = \'Jon\', last_name = \'Doe\', age = 25 ' +
+            'WHERE persons.last_name = \'Doe\' RETURNING *';
           const actual = upsert(data, {where: {lastName: 'Doe'}});
           expect(actual).to.be.equal(expected);
         });
@@ -570,7 +594,7 @@ describe('Postgres Transpiler', () => {
           const data = {id: '1', name: 'Jon'};
           const expected = 'INSERT INTO persons (id, name) ' +
             'VALUES (\'1\', \'Jon\') ON CONFLICT (id) DO UPDATE ' +
-            'SET name=\'Jon\' WHERE persons.id=\'1\' RETURNING *';
+            'SET name = \'Jon\' WHERE persons.id = \'1\' RETURNING *';
           const actual = upsert(data, {where: {id: '1'}});
           expect(actual).to.be.equal(expected);
         });
@@ -583,7 +607,7 @@ describe('Postgres Transpiler', () => {
           const data = {name: 'Jon', age: 25};
           const expected = 'INSERT INTO persons (name, age) ' +
             'VALUES (\'Jon\', 25) ON CONFLICT (age, last_name) DO UPDATE ' +
-            'SET name=\'Jon\', age=25 WHERE persons.last_name=\'Doe\' ' +
+            'SET name = \'Jon\', age = 25 WHERE persons.last_name = \'Doe\' ' +
             'RETURNING *';
           const actual = upsert(data, {where: {lastName: 'Doe'}});
           expect(actual).to.be.equal(expected);
@@ -626,11 +650,11 @@ describe('Postgres Transpiler', () => {
         const data = {id: '1', name: 'Jon', schedule: '9:00 - 6:00', personId: '1'};
         const expected = '' +
         'INSERT INTO persons (id, name) VALUES (\'1\', \'Jon\') ' +
-        'ON CONFLICT (id) DO UPDATE SET name=\'Jon\' WHERE persons.id=\'1\'; ' +
+        'ON CONFLICT (id) DO UPDATE SET name = \'Jon\' WHERE persons.id = \'1\'; ' +
         'INSERT INTO employees (schedule, person_id) VALUES ' +
-        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (person_id) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
-        'WHERE employees.person_id=\'1\'; ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (person_id) DO UPDATE SET schedule = \'9:00 - 6:00\' ' +
+        'WHERE employees.person_id = \'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\' AND employees.person_id = \'1\'';
         const actual = transpiler.upsert(data, {where: {id: '1', personId: '1'}});
         expect(actual).to.be.equal(expected);
       });
@@ -641,11 +665,11 @@ describe('Postgres Transpiler', () => {
         const query = {where: {id: '1', personId: '1'}};
         const expected = '' +
         'INSERT INTO persons (id, name, rating) VALUES (\'1\', \'Jon\', 1) ' +
-        'ON CONFLICT (rating) DO UPDATE SET name=\'Jon\', rating=1 WHERE persons.id=\'1\'; ' +
+        'ON CONFLICT (rating) DO UPDATE SET name = \'Jon\', rating = 1 WHERE persons.id = \'1\'; ' +
         'INSERT INTO employees (schedule, person_id) VALUES ' +
-        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (person_id) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
-        'WHERE employees.person_id=\'1\'; ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (person_id) DO UPDATE SET schedule = \'9:00 - 6:00\' ' +
+        'WHERE employees.person_id = \'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\' AND employees.person_id = \'1\'';
         const actual = transpiler.upsert(data, query);
         expect(actual).to.be.equal(expected);
       });
@@ -656,11 +680,11 @@ describe('Postgres Transpiler', () => {
         const query = {where: {id: '1', personId: '1'}};
         const expected = '' +
         'INSERT INTO persons (id, name, rating) VALUES (\'1\', \'Jon\', 1) ' +
-        'ON CONFLICT (id) DO UPDATE SET name=\'Jon\', rating=1 WHERE persons.id=\'1\'; ' +
+        'ON CONFLICT (id) DO UPDATE SET name = \'Jon\', rating = 1 WHERE persons.id = \'1\'; ' +
         'INSERT INTO employees (schedule, person_id) VALUES ' +
-        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (schedule) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
-        'WHERE employees.person_id=\'1\'; ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (schedule) DO UPDATE SET schedule = \'9:00 - 6:00\' ' +
+        'WHERE employees.person_id = \'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\' AND employees.person_id = \'1\'';
         const actual = transpiler.upsert(data, query);
         expect(actual).to.be.equal(expected);
       });
@@ -672,11 +696,11 @@ describe('Postgres Transpiler', () => {
         const query = {where: {id: '1', personId: '1'}};
         const expected = '' +
         'INSERT INTO persons (id, name, rating) VALUES (\'1\', \'Jon\', 1) ' +
-        'ON CONFLICT (name, rating) DO UPDATE SET name=\'Jon\', rating=1 WHERE persons.id=\'1\'; ' +
+        'ON CONFLICT (name, rating) DO UPDATE SET name = \'Jon\', rating = 1 WHERE persons.id = \'1\'; ' +
         'INSERT INTO employees (schedule, person_id) VALUES ' +
-        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (schedule) DO UPDATE SET schedule=\'9:00 - 6:00\' ' +
-        'WHERE employees.person_id=\'1\'; ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\' AND employees.person_id=\'1\'';
+        '(\'9:00 - 6:00\', \'1\') ON CONFLICT (schedule) DO UPDATE SET schedule = \'9:00 - 6:00\' ' +
+        'WHERE employees.person_id = \'1\'; ' +
+        'SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\' AND employees.person_id = \'1\'';
         const actual = transpiler.upsert(data, query);
         expect(actual).to.be.equal(expected);
       });
@@ -694,8 +718,8 @@ describe('Postgres Transpiler', () => {
       it('should create update SQL with one field', () => {
         const data = {name: 'Jon'};
         const query = {where: {'job.title': 'Programmer'}};
-        const expected = 'UPDATE persons SET name=\'Jon\' ' +
-          'WHERE persons.job->>\'title\'=\'Programmer\' RETURNING *';
+        const expected = 'UPDATE persons SET name = \'Jon\' ' +
+          'WHERE persons.job->>\'title\' = \'Programmer\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -703,8 +727,8 @@ describe('Postgres Transpiler', () => {
       it('ignores primary key from set values', () => {
         const data = {id: '1', name: 'Jon'};
         const query = {where: {'job.title': 'Programmer'}};
-        const expected = 'UPDATE persons SET name=\'Jon\' ' +
-          'WHERE persons.job->>\'title\'=\'Programmer\' RETURNING *';
+        const expected = 'UPDATE persons SET name = \'Jon\' ' +
+          'WHERE persons.job->>\'title\' = \'Programmer\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -712,7 +736,7 @@ describe('Postgres Transpiler', () => {
       it('should create update SQL with one field and no conditions', () => {
         const data = {name: 'Jon'};
         const query = {};
-        const expected = 'UPDATE persons SET name=\'Jon\' RETURNING *';
+        const expected = 'UPDATE persons SET name = \'Jon\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -720,7 +744,7 @@ describe('Postgres Transpiler', () => {
       it('should create update SQL with one field and unexistent conditions', () => {
         const data = {name: 'Jon'};
         let query;
-        const expected = 'UPDATE persons SET name=\'Jon\' RETURNING *';
+        const expected = 'UPDATE persons SET name = \'Jon\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -736,8 +760,8 @@ describe('Postgres Transpiler', () => {
         const data = {'job': {title: 'Programmer', companyName: 'VoxFeed'}};
         const query = {where: {name: 'Jon'}};
         const expected = '' +
-          'UPDATE persons SET job=\'{"title":"Programmer","company_name":"VoxFeed"}\' ' +
-          'WHERE persons.name=\'Jon\' RETURNING *';
+          'UPDATE persons SET job = \'{"title":"Programmer","company_name":"VoxFeed"}\' ' +
+          'WHERE persons.name = \'Jon\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -746,8 +770,8 @@ describe('Postgres Transpiler', () => {
         const data = {'job.title': 'Programmer'};
         const query = {where: {name: 'Jon'}};
         const expected = '' +
-          'UPDATE persons SET job=\'{"title":"Programmer"}\' ' +
-          'WHERE persons.name=\'Jon\' RETURNING *';
+          'UPDATE persons SET job = \'{"title":"Programmer"}\' ' +
+          'WHERE persons.name = \'Jon\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -756,8 +780,8 @@ describe('Postgres Transpiler', () => {
         const data = {'job.title': 'Programmer', 'job.companyName': 'VoxFeed'};
         const query = {where: {name: 'Jon'}};
         const expected = '' +
-          'UPDATE persons SET job=\'{"title":"Programmer","company_name":"VoxFeed"}\' ' +
-          'WHERE persons.name=\'Jon\' RETURNING *';
+          'UPDATE persons SET job = \'{"title":"Programmer","company_name":"VoxFeed"}\' ' +
+          'WHERE persons.name = \'Jon\' RETURNING *';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -793,13 +817,13 @@ describe('Postgres Transpiler', () => {
         const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};
         const expected = '' +
         'WITH PARENT_RECORD as (' +
-          'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.name=\'Luis\' AND employees.ssn=\'124124\' ' +
-          'AND persons.id=employees.person_id RETURNING id) ' +
-        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          'UPDATE persons SET name = \'Jon\', last_name = \'Doe\' FROM employees ' +
+          'WHERE persons.name = \'Luis\' AND employees.ssn = \'124124\' ' +
+          'AND persons.id = employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn = \'123123\' WHERE employees.person_id = ' +
           '(SELECT id FROM PARENT_RECORD); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND employees.ssn=\'123123\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.name = \'Jon\' AND employees.ssn = \'123123\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -809,12 +833,12 @@ describe('Postgres Transpiler', () => {
         const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};
         const expected = '' +
         'WITH PARENT_RECORD as (' +
-          'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.id=\'1\' AND persons.id=employees.person_id RETURNING id) ' +
-        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          'UPDATE persons SET name = \'Jon\', last_name = \'Doe\' FROM employees ' +
+          'WHERE persons.id = \'1\' AND persons.id = employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn = \'123123\' WHERE employees.person_id = ' +
           '(SELECT id FROM PARENT_RECORD); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.id=\'1\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.id = \'1\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -824,13 +848,13 @@ describe('Postgres Transpiler', () => {
         const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};
         const expected = '' +
         'WITH PARENT_RECORD as (' +
-          'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE persons.name=\'Luis\' AND persons.last_name=\'Argumedo\' ' +
-          'AND persons.id=employees.person_id RETURNING id) ' +
-        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          'UPDATE persons SET name = \'Jon\', last_name = \'Doe\' FROM employees ' +
+          'WHERE persons.name = \'Luis\' AND persons.last_name = \'Argumedo\' ' +
+          'AND persons.id = employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn = \'123123\' WHERE employees.person_id = ' +
           '(SELECT id FROM PARENT_RECORD); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.name = \'Jon\' AND persons.last_name = \'Doe\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -840,12 +864,12 @@ describe('Postgres Transpiler', () => {
         const data = {name: 'Jon', job: {title: 'QA'}, ssn: '123123'};
         const expected = '' +
         'WITH PARENT_RECORD as (' +
-          'UPDATE persons SET name=\'Jon\', job=\'{"title":"QA"}\' FROM employees ' +
-          'WHERE persons.id=\'1\' AND persons.id=employees.person_id RETURNING id) ' +
-        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          'UPDATE persons SET name = \'Jon\', job = \'{"title":"QA"}\' FROM employees ' +
+          'WHERE persons.id = \'1\' AND persons.id = employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn = \'123123\' WHERE employees.person_id = ' +
           '(SELECT id FROM PARENT_RECORD); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.id=\'1\'';
+        'SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.id = \'1\'';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -855,13 +879,13 @@ describe('Postgres Transpiler', () => {
         const data = {name: 'Jon', lastName: 'Doe', ssn: '123123'};
         const expected = '' +
         'WITH PARENT_RECORD as (' +
-          'UPDATE persons SET name=\'Jon\', last_name=\'Doe\' FROM employees ' +
-          'WHERE (persons.name=\'Luis\' OR persons.last_name=\'Argumedo\') ' +
-          'AND persons.id=employees.person_id RETURNING id) ' +
-        'UPDATE employees SET ssn=\'123123\' WHERE employees.person_id=' +
+          'UPDATE persons SET name = \'Jon\', last_name = \'Doe\' FROM employees ' +
+          'WHERE (persons.name = \'Luis\' OR persons.last_name = \'Argumedo\') ' +
+          'AND persons.id = employees.person_id RETURNING id) ' +
+        'UPDATE employees SET ssn = \'123123\' WHERE employees.person_id = ' +
           '(SELECT id FROM PARENT_RECORD); ' +
-        'SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE (persons.name=\'Jon\' OR persons.last_name=\'Doe\')';
+        'SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE (persons.name = \'Jon\' OR persons.last_name = \'Doe\')';
         const actual = transpiler.update(query, data);
         expect(actual).to.be.equal(expected);
       });
@@ -885,31 +909,31 @@ describe('Postgres Transpiler', () => {
 
       it('should create correct SQL with one field', () => {
         const query = {where: {name: 'Jon'}};
-        const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\'';
+        const expected = 'DELETE FROM persons WHERE persons.name = \'Jon\'';
         const actual = transpiler.remove(query);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with many conditions', () => {
         const uql = {where: {name: 'Jon', lastName: 'Doe', age: 23, rating: 5.2}};
-        const expected = 'DELETE FROM persons WHERE persons.name=\'Jon\' AND ' +
-          'persons.last_name=\'Doe\' AND persons.age=23 AND persons.rating=5.2';
+        const expected = 'DELETE FROM persons WHERE persons.name = \'Jon\' AND ' +
+          'persons.last_name = \'Doe\' AND persons.age = 23 AND persons.rating = 5.2';
         const actual = transpiler.remove(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with bad values', () => {
         const uql = {where: {name: 123, lastName: null, age: null, rating: null}};
-        const expected = 'DELETE FROM persons WHERE persons.name=\'123\' AND ' +
-          'persons.last_name=null AND persons.age=null AND persons.rating=null';
+        const expected = 'DELETE FROM persons WHERE persons.name = \'123\' AND ' +
+          'persons.last_name IS NULL AND persons.age IS NULL AND persons.rating IS NULL';
         const actual = transpiler.remove(uql);
         expect(actual).to.be.equal(expected);
       });
 
       it('should create correct SQL with or operator', () => {
         const uql = {where: {or: [{name: 'Jon'}, {lastName: 'Doe'}]}};
-        const expected = 'DELETE FROM persons WHERE (persons.name=\'Jon\' OR ' +
-         'persons.last_name=\'Doe\')';
+        const expected = 'DELETE FROM persons WHERE (persons.name = \'Jon\' OR ' +
+         'persons.last_name = \'Doe\')';
         const actual = transpiler.remove(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -917,7 +941,7 @@ describe('Postgres Transpiler', () => {
       it('should create correct SQL for single json inner query', () => {
         const uql = {where: {'job.title': 'Programmer'}};
         const expected = 'DELETE FROM persons WHERE ' +
-          'persons.job->>\'title\'=\'Programmer\'';
+          'persons.job->>\'title\' = \'Programmer\'';
         const actual = transpiler.remove(uql);
         expect(actual).to.be.equal(expected);
       });
@@ -947,9 +971,9 @@ describe('Postgres Transpiler', () => {
         const query = {where: {id: '1'}};
         const expected = '' +
         'BEGIN; ' +
-        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\') ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\') ' +
         'DELETE FROM employees WHERE employees.person_id IN (SELECT id FROM ids);' +
-        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id WHERE persons.id=\'1\') ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id = id WHERE persons.id = \'1\') ' +
         'DELETE FROM persons WHERE persons.id IN (SELECT id FROM ids); ' +
         'COMMIT;';
         const actual = transpiler.remove(query);
@@ -960,11 +984,11 @@ describe('Postgres Transpiler', () => {
         const query = {where: {name: 'Jon', last_name: 'Doe'}};
         const expected = '' +
         'BEGIN; ' +
-        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\') ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.name = \'Jon\' AND persons.last_name = \'Doe\') ' +
         'DELETE FROM employees WHERE employees.person_id IN (SELECT id FROM ids);' +
-        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND persons.last_name=\'Doe\') ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.name = \'Jon\' AND persons.last_name = \'Doe\') ' +
         'DELETE FROM persons WHERE persons.id IN (SELECT id FROM ids); ' +
         'COMMIT;';
         const actual = transpiler.remove(query);
@@ -975,11 +999,11 @@ describe('Postgres Transpiler', () => {
         const query = {where: {name: 'Jon', ssn: '123'}};
         const expected = '' +
         'BEGIN; ' +
-        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND employees.ssn=\'123\') ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.name = \'Jon\' AND employees.ssn = \'123\') ' +
         'DELETE FROM employees WHERE employees.person_id IN (SELECT id FROM ids);' +
-        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id=id ' +
-        'WHERE persons.name=\'Jon\' AND employees.ssn=\'123\') ' +
+        'WITH ids as (SELECT * FROM employees JOIN persons ON person_id = id ' +
+        'WHERE persons.name = \'Jon\' AND employees.ssn = \'123\') ' +
         'DELETE FROM persons WHERE persons.id IN (SELECT id FROM ids); ' +
         'COMMIT;';
         const actual = transpiler.remove(query);

@@ -458,6 +458,20 @@ describe('Postgres Transpiler', () => {
         const actual = transpiler.insert(data);
         expect(actual).to.be.equal(expected);
       });
+
+      it('should create sql with undefined and empty values', () => {
+        const data = {
+          name: '',
+          lastName: null,
+          age: null,
+          tracked: false,
+          job: {title: 'Programmer', company: 'VoxFeed'}
+        };
+        const expected = 'INSERT INTO persons (name, last_name, age, tracked, job) ' +
+          'VALUES (\'\', null, null, false, \'{"title":"Programmer","company":"VoxFeed"}\') RETURNING *';
+        const actual = transpiler.insert(data);
+        expect(actual).to.be.equal(expected);
+      });
     });
 
     describe('Extended Model', () => {

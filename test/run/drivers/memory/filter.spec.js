@@ -64,6 +64,36 @@ describe('Memory Filter', () => {
     expect(actual).to.be.equal(expected);
   });
 
+  it('should find with a not equals operator ne', () => {
+    const excludeName = 'Jon';
+    const uql = {where: {name: {ne: excludeName}}};
+    const res = filter(uql);
+    res.forEach(({name}) => expect(name).not.to.be.equal(excludeName));
+  });
+
+  it('should find with multiples not equals operator ne', () => {
+    const excludeName1 = 'Jon';
+    const excludeName2 = 'Luis';
+    const uql = {where: { or: [{name: {ne: excludeName1}}, {name: {ne: excludeName2}}] }};
+    const res = filter(uql);
+    res.forEach(({name}) => expect([excludeName1, excludeName2]).not.to.include(name));
+  });
+
+  it('should find combining between multiples not equals operator ne and other filters', () => {
+    const excludeName1 = 'Jon';
+    const excludeName2 = 'Luis';
+    const age = 23;
+    const uql = {where: {
+      and: [
+        { or: [{name: {ne: excludeName1}}, {name: {ne: excludeName2}}] },
+        { age: { gt: age }}
+      ]
+    }};
+    const res = filter(uql);
+    res.forEach(({name, age: actualAge}) => expect([excludeName1, excludeName2]).not.to.include(name)
+      && expect(actualAge).to.be.above(age));
+  });
+
   it('should create correct conditions with three regular conditions and a date range condition', () => {
     const startDate = new Date('2015-10-01T00:00:00.000Z');
     const endDate = new Date('2016-01-18T00:00:00.000Z');
